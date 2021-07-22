@@ -161,6 +161,3 @@ class Robot(Device):
 
         if self.spindle_occupied_sts.get(use_monitor=False):
             raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount")
-
-
-robot = Robot("XF:19IDC-ES{Rbt:1}", name="robot")
