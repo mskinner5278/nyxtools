@@ -2,7 +2,7 @@ from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO, PVPositi
 from bluesky import plan_stubs as bps
 
 
-class Robot(Device):
+class DensoOphydRobot(Device):
     """
     Represents the sample mounting Robot at NYX
 
