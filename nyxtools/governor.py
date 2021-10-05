@@ -232,6 +232,3 @@ def _make_governors(prefix: str, name: str) -> "Governors":
         )
 
     return Governors("", name=name)
-
-
-govs = _make_governors("XF:19IDC-ES", name="govs")
