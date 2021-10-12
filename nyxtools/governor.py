@@ -87,6 +87,7 @@
 
 
 from ophyd import (
+    Device,
     PVPositionerPC,
     EpicsSignal,
     EpicsSignalRO,
