@@ -174,7 +174,8 @@ class VectorProgram(Device):
     def run(
         self,
         o: Tuple[float,float], x: Tuple[float,float], y: Tuple[float, float], z: Tuple[float,float],
-        exposure: float, num_samples: float, buffer_time: float, shutter_lag_time: float, shutter_time: float):
+        exposure_ms: float, num_samples: float, buffer_time_ms: float, shutter_lag_time_ms: float,
+        shutter_time_ms: float):
 
         # Configure motion
         yield from bps.abs_set(self.sync, 1, wait=True)
@@ -184,11 +185,11 @@ class VectorProgram(Device):
             self.expose, True,
             self.hold, False,
 
-            self.exposure, exposure,
+            self.exposure, exposure_ms,
             self.num_samples, num_samples,
-            self.buffer_time, buffer_time,
-            self.shutter_lag_time, shutter_lag_time,
-            self.shutter_time, shutter_time,
+            self.buffer_time, buffer_time_ms,
+            self.shutter_lag_time, shutter_lag_time_ms,
+            self.shutter_time, shutter_time_ms,
 
             self.o.start, o[0],
             self.o.end, o[1],
