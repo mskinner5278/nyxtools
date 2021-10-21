@@ -13,8 +13,8 @@ from bluesky import plan_stubs as bps
 
 class VectorSignalWithRBV(EpicsSignal):
     """
-    An EPICS signal that uses the NSLS-II convention of 'pvname-SP' being the
-    setpoint and 'pvname-I' being the read-back
+    An EPICS signal that uses 'pvname-SP' for the setpoint and
+    'pvname-I' for the read-back
     """
 
     def __init__(self, prefix, **kwargs):
