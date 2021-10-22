@@ -215,9 +215,9 @@ class VectorProgram(Device):
         yield from bps.sleep(1.0)
 
         # Check for errors
-        error = yield from bps.rd(self.error, as_string=True, use_monitor=False)
+        error = yield from bps.rd(self.error)  # TODO fix so returned type is string
 
-        if error != "None":
+        if error != 0:
             raise Exception(f"Failed to run vector. Error: {error}")
 
         # Estimate total motion time (in ms)
