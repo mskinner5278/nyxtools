@@ -118,16 +118,16 @@ class VectorProgram(Device):
     #
 
     # Omega motor
-    o = Cpt(VectorMotor, "O")
+    o = Cpt(VectorMotor, "", motor_name="O")
 
     # X motor
-    x = Cpt(VectorMotor, "X")
+    x = Cpt(VectorMotor, "", motor_name="X")
 
     # Y motor
-    y = Cpt(VectorMotor, "Y")
+    y = Cpt(VectorMotor, "", motor_name="Y")
 
     # Z motor
-    z = Cpt(VectorMotor, "Z")
+    z = Cpt(VectorMotor, "", motor_name="Z")
 
     #
     # Debugging
