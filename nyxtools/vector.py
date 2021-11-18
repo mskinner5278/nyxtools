@@ -234,7 +234,6 @@ class VectorProgram(Device):
         self.timeout = 5*estimated_total_time_ms/1000.0
         self.ready = True
 
-
     def move(self):
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
