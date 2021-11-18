@@ -83,6 +83,10 @@ class VectorProgram(Device):
     Wraps PVs that control the vector program.
     """
 
+    def __init__(self, *args, **kwargs):
+        self.ready = False
+        super().__init__(*args, **kwargs)
+
     #
     # Configuration
     #
@@ -171,7 +175,7 @@ class VectorProgram(Device):
     # Set all vector motors start and end position to their current RBV values
     sync = Cpt(EpicsSignal, "Cmd:Sync-Cmd")
 
-    def run(
+    def prepare_move(
         self,
         o: Tuple[float,float], x: Tuple[float,float], y: Tuple[float, float], z: Tuple[float,float],
         exposure_ms: float, num_samples: float, buffer_time_ms: float, shutter_lag_time_ms: float,
@@ -227,8 +231,12 @@ class VectorProgram(Device):
         daq_duration = yield from bps.rd(self.data_acq_duration)
 
         estimated_total_time_ms = 2*time_to_speed + buffer_time + 2*shutter_time + daq_duration
-        timeout = 5*estimated_total_time_ms/1000.0
+        self.timeout = 5*estimated_total_time_ms/1000.0
+        self.ready = True
 
+    def move(self):
+        if not self.ready:
+            raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
         yield from bps.abs_set(self.calc_only, False, wait=True)
         yield from bps.abs_set(self.go, 1, wait=False)
@@ -248,7 +256,9 @@ class VectorProgram(Device):
             running = yield from bps.rd(self.running)
             elapsed = time.time() - t
 
-            if not running or elapsed > timeout:
+            if not running:
                 break
+            if elapsed > self.timeout:
+                raise Exception("Run timed out, completion should be checked manually.")
 
             yield from bps.sleep(0.1)
