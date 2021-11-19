@@ -5,7 +5,8 @@ import os
 import time as ttime
 from collections import deque
 
-import h5py
+import fabio
+
 from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
 
@@ -26,8 +27,7 @@ class NYXFlyer(MXFlyer):
         self._resource_uids = []
         self._datum_counter = None
         self._datum_ids = DEFAULT_DATUM_DICT
-        self._master_file = None
-        self._master_metadata = []
+        self._first_file = None
 
         self._collection_dictionary = None
 
@@ -41,7 +41,6 @@ class NYXFlyer(MXFlyer):
         self.unstage()
 
         now = ttime.time()
-        self._master_metadata = self._extract_metadata()
         data = {f"{self.detector.name}_image": self._datum_ids["data"], "omega": self._datum_ids["omega"]}
         yield {
             "data": data,
@@ -71,11 +70,9 @@ class NYXFlyer(MXFlyer):
         # Uncomment & update the line below if more datum documents are needed:
         # for i in range(num_points):
 
-        seq_id = self.detector.cam.sequence_id.get()
-
-        self._master_file = f"{resource['root']}/{resource['resource_path']}_{seq_id}_master.h5"
-        if not os.path.isfile(self._master_file):
-            raise RuntimeError(f"File {self._master_file} does not exist")
+        self._first_file = f"{resource['root']}/{resource['resource_path']}_00001.cbf"
+        if not os.path.isfile(self._first_file):
+            raise RuntimeError(f"File {self._first_file} does not exist")
 
         # The pseudocode below is from Tom Caswell explaining the relationship between resource, datum, and events.
         #
@@ -112,8 +109,8 @@ class NYXFlyer(MXFlyer):
         return tuple(asset_docs_cache)
 
     def _extract_metadata(self, field="omega"):
-        with h5py.File(self._master_file, "r") as hf:
-            return hf.get(f"entry/sample/goniometer/{field}")[()]
+        with fabio.open(self._first_file, "r") as cbf:
+            return cbf.pilatus_headers('omega')
 
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
