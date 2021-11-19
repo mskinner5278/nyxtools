@@ -1,0 +1,164 @@
+import getpass
+import grp
+import logging
+import os
+import time as ttime
+from collections import deque
+
+import h5py
+from ophyd.sim import NullStatus
+from ophyd.status import SubscriptionStatus
+
+from mxtools.flyer import MXFlyer
+
+logger = logging.getLogger(__name__)
+DEFAULT_DATUM_DICT = {"data": None, "omega": None}
+
+
+class NYXFlyer(MXFlyer):
+    def __init__(self, vector, zebra, detector=None) -> None:
+        self.name = "NYXFlyer"
+        self.vector = vector
+        self.zebra = zebra
+        self.detector = detector
+
+        self._asset_docs_cache = deque()
+        self._resource_uids = []
+        self._datum_counter = None
+        self._datum_ids = DEFAULT_DATUM_DICT
+        self._master_file = None
+        self._master_metadata = []
+
+        self._collection_dictionary = None
+
+    def kickoff(self):
+        self.detector.stage()
+        self.vector.go.put(1, wait=True)
+
+        return NullStatus()
+
+    def collect(self):
+        self.unstage()
+
+        now = ttime.time()
+        self._master_metadata = self._extract_metadata()
+        data = {f"{self.detector.name}_image": self._datum_ids["data"], "omega": self._datum_ids["omega"]}
+        yield {
+            "data": data,
+            "timestamps": {key: now for key in data},
+            "time": now,
+            "filled": {key: False for key in data},
+        }
+
+    def collect_asset_docs(self):
+
+        asset_docs_cache = []
+
+        # Get the Resource which was produced when the detector was staged.
+        ((name, resource),) = self.detector.file.collect_asset_docs()
+
+        asset_docs_cache.append(("resource", resource))
+        self._datum_ids = DEFAULT_DATUM_DICT
+        # Generate Datum documents from scratch here, because the detector was
+        # triggered externally by the DeltaTau, never by ophyd.
+        resource_uid = resource["uid"]
+        # num_points = int(math.ceil(self.detector.cam.num_images.get() /
+        #                 self.detector.cam.fw_num_images_per_file.get()))
+
+        # We are currently generating only one datum document for all frames, that's why
+        #   we use the 0th index below.
+        #
+        # Uncomment & update the line below if more datum documents are needed:
+        # for i in range(num_points):
+
+        seq_id = self.detector.cam.sequence_id.get()
+
+        self._master_file = f"{resource['root']}/{resource['resource_path']}_{seq_id}_master.h5"
+        if not os.path.isfile(self._master_file):
+            raise RuntimeError(f"File {self._master_file} does not exist")
+
+        # The pseudocode below is from Tom Caswell explaining the relationship between resource, datum, and events.
+        #
+        # resource = {
+        #     "resource_id": "RES",
+        #     "resource_kwargs": {},  # this goes to __init__
+        #     "spec": "AD-EIGER-MX",
+        #     ...: ...,
+        # }
+        # datum = {
+        #     "datum_id": "a",
+        #     "datum_kwargs": {"data_key": "data"},  # this goes to __call__
+        #     "resource": "RES",
+        #     ...: ...,
+        # }
+        # datum = {
+        #     "datum_id": "b",
+        #     "datum_kwargs": {"data_key": "omega"},
+        #     "resource": "RES",
+        #     ...: ...,
+        # }
+
+        # event = {...: ..., "data": {"detector_img": "a", "omega": "b"}}
+
+        for data_key in self._datum_ids.keys():
+            datum_id = f"{resource_uid}/{data_key}"
+            self._datum_ids[data_key] = datum_id
+            datum = {
+                "resource": resource_uid,
+                "datum_id": datum_id,
+                "datum_kwargs": {"data_key": data_key},
+            }
+            asset_docs_cache.append(("datum", datum))
+        return tuple(asset_docs_cache)
+
+    def _extract_metadata(self, field="omega"):
+        with h5py.File(self._master_file, "r") as hf:
+            return hf.get(f"entry/sample/goniometer/{field}")[()]
+
+    def detector_arm(self, **kwargs):
+        start = kwargs["angle_start"]
+        width = kwargs["img_width"]
+        num_images = kwargs["num_images"]
+        exposure_per_image = kwargs["exposure_period_per_image"]
+        file_prefix = kwargs["file_prefix"]
+        data_directory_name = kwargs["data_directory_name"]
+        file_number_start = kwargs["file_number_start"]
+        x_beam = kwargs["x_beam"]
+        y_beam = kwargs["y_beam"]
+        wavelength = kwargs["wavelength"]
+        det_distance_m = kwargs["det_distance_m"]
+
+        self.detector.cam.save_files.put(1, wait=True)
+        self.detector.cam.file_owner.put(getpass.getuser(), wait=True)
+        self.detector.cam.file_owner_grp.put(grp.getgrgid(os.getgid())[0], wait=True)
+        self.detector.cam.file_perms.put(420, wait=True)
+        file_prefix_minus_directory = str(file_prefix)
+        file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
+
+        self.detector.cam.acquire_time.put(exposure_per_image, wait=True)
+        self.detector.cam.acquire_period.put(exposure_per_image, wait=True)
+        self.detector.cam.num_images.put(num_images, wait=True)
+        self.detector.cam.file_path.put(data_directory_name, wait=True)
+        self.detector.cam.fw_name_pattern.put(f"{file_prefix_minus_directory}_$id", wait=True)
+
+        # TODO: change it back to detector.cam.sequence_id once the ophyd PR
+        # https://github.com/bluesky/ophyd/pull/1001 is merged/released.
+        self.detector.file.sequence_id.put(file_number_start, wait=True)
+
+        # originally from detector_set_fileheader
+        self.detector.cam.beam_center_x.put(x_beam, wait=True)
+        self.detector.cam.beam_center_y.put(y_beam, wait=True)
+        self.detector.cam.omega_incr.put(width, wait=True)
+        self.detector.cam.omega_start.put(start, wait=True)
+        self.detector.cam.wavelength.put(wavelength, wait=True)
+        self.detector.cam.det_distance.put(det_distance_m, wait=True)
+
+        start_arm = ttime.time()
+        self.detector.cam.acquire.put(1, wait=True)
+        logger.info(f"arm time = {ttime.time() - start_arm}")
+
+    def configure_detector(self, **kwargs):
+        ...
+
+    def configure_vector(self, **kwargs):
+        ...
