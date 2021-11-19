@@ -33,7 +33,7 @@ class NYXFlyer(MXFlyer):
 
     def kickoff(self):
         self.detector.stage()
-        self.vector.go.put(1, wait=True)
+        self.vector.move()
 
         return NullStatus()
 
@@ -158,4 +158,15 @@ class NYXFlyer(MXFlyer):
         ...
 
     def configure_vector(self, **kwargs):
-        ...
+        angle_start = kwargs["angle_start"]
+        scan_width = kwargs["scan_width"]
+        exposure_ms = kwargs["exposure_period_per_image"]
+        num_images = kwargs["num_images"]
+        o = (angle_start, angle_start + scan_width)
+        x = (0,0)
+        y = (0,0)
+        z = (0,0)
+        buffer_time_ms = 50
+        shutter_lag_time_ms = 2
+        shutter_time_ms = 2
+        self.vector.prepare_move(o, x, y, z, exposure_ms, num_samples, buffer_time_ms, shutter_lag_time_ms)
