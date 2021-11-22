@@ -136,11 +136,6 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.acquire_period.put(exposure_per_image, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
         self.detector.cam.file_path.put(data_directory_name, wait=True)
-        self.detector.cam.fw_name_pattern.put(f"{file_prefix_minus_directory}_$id", wait=True)
-
-        # TODO: change it back to detector.cam.sequence_id once the ophyd PR
-        # https://github.com/bluesky/ophyd/pull/1001 is merged/released.
-        self.detector.file.sequence_id.put(file_number_start, wait=True)
 
         # originally from detector_set_fileheader
         self.detector.cam.beam_center_x.put(x_beam, wait=True)
