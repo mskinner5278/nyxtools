@@ -157,9 +157,9 @@ class NYXFlyer(MXFlyer):
         scan_width = kwargs["scan_width"]
         exposure_ms = kwargs["exposure_period_per_image"]
         num_images = kwargs["num_images"]
-        x_microns = (kwargs["x_start"] / 1000, kwargs["x_start"] / 1000)
-        y_microns = (kwargs["y_start"] / 1000, kwargs["y_start"] / 1000)
-        z_microns = (kwargs["z_start"] / 1000, kwargs["z_start"] / 1000)
+        x_mm = (kwargs["x_start_um"] / 1000, kwargs["x_start_um"] / 1000)
+        y_mm = (kwargs["y_start_um"] / 1000, kwargs["y_start_um"] / 1000)
+        z_mm = (kwargs["z_start_um"] / 1000, kwargs["z_start_um"] / 1000)
         o = (angle_start, angle_start + scan_width)
         buffer_time_ms = 50
         shutter_lag_time_ms = 2
