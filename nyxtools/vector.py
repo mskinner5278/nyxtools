@@ -208,7 +208,6 @@ class VectorProgram(Device):
 
         self.z.start.put(z[0])
         self.z.end.put(z[1])
-
         # Do we need to wait here?
 
         # Start "motion"
@@ -238,8 +237,8 @@ class VectorProgram(Device):
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
-        yield from bps.abs_set(self.calc_only, False, wait=True)
-        yield from bps.abs_set(self.go, 1, wait=False)
+        self.calc_only.set(False)
+        self.go.set(1)
 
         # Wait until it is done
 
@@ -248,16 +247,17 @@ class VectorProgram(Device):
         # instead, we wait a little bit after the motion is started (hopefully past 0->1)
         # and then wait until either we see 1->0 or a timeout expires
 
-        yield from bps.sleep(0.2)
+        time.sleep(0.2)
 
         t = time.time()
 
         while True:
-            running = yield from bps.rd(self.running)
+            running = self.running.get()
             elapsed = time.time() - t
 
-            if not running or elapsed > self.timeout:
+            if not running:
                 break
+            if elapsed > self.timeout:
+                raise Exception("Run timed out, completion should be checked manually.")
 
-            yield from bps.sleep(0.1)
-
+            time.sleep(0.1)
