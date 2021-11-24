@@ -108,7 +108,7 @@ class NYXFlyer(MXFlyer):
 
     def _extract_metadata(self, field="omega"):
         with fabio.open(self._first_file, "r") as cbf:
-            return cbf.pilatus_headers('omega')
+            return cbf.pilatus_headers("omega")
 
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
@@ -163,4 +163,6 @@ class NYXFlyer(MXFlyer):
         buffer_time_ms = 50
         shutter_lag_time_ms = 2
         shutter_time_ms = 2
-        self.vector.prepare_move(o, x_mm, y_mm, z_mm, exposure_ms, num_samples, buffer_time_ms, shutter_lag_time_ms)
+        self.vector.prepare_move(
+            o, x_mm, y_mm, z_mm, exposure_ms, num_samples, buffer_time_ms, shutter_lag_time_ms
+        )

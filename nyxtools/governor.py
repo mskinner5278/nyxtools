@@ -95,7 +95,7 @@ from ophyd import EpicsSignal, EpicsSignalRO, PVPositionerPC, get_cl
 
 
 class GovernorPositioner(PVPositionerPC):
-    """ Mixin to control the Governor state as a positioner """
+    """Mixin to control the Governor state as a positioner"""
 
     setpoint = Cpt(EpicsSignal, "}Cmd:Go-Cmd")
     readback = Cpt(EpicsSignalRO, "}Sts:State-I")
@@ -104,7 +104,7 @@ class GovernorPositioner(PVPositionerPC):
 
 
 class GovernorMeta(Device):
-    """ Mixin to expose metadata for the Governor """
+    """Mixin to expose metadata for the Governor"""
 
     # Metadata
 
@@ -149,22 +149,15 @@ def _make_governor_device(targets: List[str], states: List[str]) -> type:
     # Targets of a device. A target is a named position.
     # Example PV: XF:19IDC-ES{Gov:Robot-Dev:cxy}Pos:Near-Pos
     # Target named "Near" for the cxy device.
-    target_attrs = [
-        (f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos"))
-        for target in targets
-    ]
+    target_attrs = [(f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos")) for target in targets]
 
     # Limits of a device for each state.
     # Example PVs: XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:LLim-Pos
     #              XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:HLim-Pos
     # Low and High limits for the cxy device at state SA
-    limit_attrs = [
-        (f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states
-    ]
+    limit_attrs = [(f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states]
 
-    return type(
-        "GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs)
-    )
+    return type("GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs))
 
 
 def _make_governor(prefix: str) -> type:
@@ -211,7 +204,7 @@ def _make_governors(prefix: str, name: str) -> "Governors":
     # instead of a list with a single str
     if isinstance(gov_names, str):
         gov_names = [gov_names]
-    
+
     try:
         gov_prefixes: List[str] = [f"{prefix}{{Gov:{name}" for name in gov_names]
     except:
