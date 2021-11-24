@@ -6,11 +6,9 @@ import time as ttime
 from collections import deque
 
 import fabio
-
+from mxtools.flyer import MXFlyer
 from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
-
-from mxtools.flyer import MXFlyer
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}

@@ -1,5 +1,6 @@
-from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO, PVPositionerPC
 from bluesky import plan_stubs as bps
+from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO, PVPositionerPC
 
 
 class DensoOphydRobot(Device):

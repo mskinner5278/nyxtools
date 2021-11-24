@@ -86,16 +86,12 @@
 """
 
 
-from ophyd import (
-    Device,
-    PVPositionerPC,
-    EpicsSignal,
-    EpicsSignalRO,
-    Component as Cpt,
-    DynamicDeviceComponent as DDCpt,
-    get_cl,
-)
-from typing import List, Dict
+from typing import Dict, List
+
+from ophyd import Component as Cpt
+from ophyd import Device
+from ophyd import DynamicDeviceComponent as DDCpt
+from ophyd import EpicsSignal, EpicsSignalRO, PVPositionerPC, get_cl
 
 
 class GovernorPositioner(PVPositionerPC):
