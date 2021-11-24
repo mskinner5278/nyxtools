@@ -38,7 +38,10 @@ class NYXFlyer(MXFlyer):
         self.unstage()
 
         now = ttime.time()
-        data = {f"{self.detector.name}_image": self._datum_ids["data"], "omega": self._datum_ids["omega"]}
+        data = {
+            f"{self.detector.name}_image": self._datum_ids["data"],
+            "omega": self._datum_ids["omega"],
+        }
         yield {
             "data": data,
             "timestamps": {key: now for key in data},
@@ -162,6 +165,13 @@ class NYXFlyer(MXFlyer):
         shutter_lag_time_ms = 2
         shutter_time_ms = 2
         self.vector.prepare_move(
-            o, x_mm, y_mm, z_mm, exposure_ms, num_images, buffer_time_ms, shutter_lag_time_ms,
-            shutter_time_ms
+            o,
+            x_mm,
+            y_mm,
+            z_mm,
+            exposure_ms,
+            num_images,
+            buffer_time_ms,
+            shutter_lag_time_ms,
+            shutter_time_ms,
         )

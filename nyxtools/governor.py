@@ -149,15 +149,22 @@ def _make_governor_device(targets: List[str], states: List[str]) -> type:
     # Targets of a device. A target is a named position.
     # Example PV: XF:19IDC-ES{Gov:Robot-Dev:cxy}Pos:Near-Pos
     # Target named "Near" for the cxy device.
-    target_attrs = [(f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos")) for target in targets]
+    target_attrs = [
+        (f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos"))
+        for target in targets
+    ]
 
     # Limits of a device for each state.
     # Example PVs: XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:LLim-Pos
     #              XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:HLim-Pos
     # Low and High limits for the cxy device at state SA
-    limit_attrs = [(f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states]
+    limit_attrs = [
+        (f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states
+    ]
 
-    return type("GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs))
+    return type(
+        "GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs)
+    )
 
 
 def _make_governor(prefix: str) -> type:
