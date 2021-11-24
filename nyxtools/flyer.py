@@ -8,7 +8,6 @@ from collections import deque
 import fabio
 from mxtools.flyer import MXFlyer
 from ophyd.sim import NullStatus
-from ophyd.status import SubscriptionStatus
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
@@ -117,7 +116,6 @@ class NYXFlyer(MXFlyer):
         exposure_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
-        file_number_start = kwargs["file_number_start"]
         x_beam = kwargs["x_beam"]
         y_beam = kwargs["y_beam"]
         wavelength = kwargs["wavelength"]
@@ -164,5 +162,6 @@ class NYXFlyer(MXFlyer):
         shutter_lag_time_ms = 2
         shutter_time_ms = 2
         self.vector.prepare_move(
-            o, x_mm, y_mm, z_mm, exposure_ms, num_samples, buffer_time_ms, shutter_lag_time_ms
+            o, x_mm, y_mm, z_mm, exposure_ms, num_images, buffer_time_ms, shutter_lag_time_ms,
+            shutter_time_ms
         )
