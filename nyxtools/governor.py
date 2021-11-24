@@ -192,7 +192,7 @@ def _make_governor(prefix: str) -> type:
     return Governor
 
 
-def _make_governors(prefix: str, name: str) -> "Governors":
+def _make_governors(prefix: str, name: str) -> "Governors":  # noqa: F821
     """Returns a dynamically created object that represents
     all available Governors, and allows switching between
     them, as well as deactivating them.
@@ -207,7 +207,7 @@ def _make_governors(prefix: str, name: str) -> "Governors":
 
     try:
         gov_prefixes: List[str] = [f"{prefix}{{Gov:{name}" for name in gov_names]
-    except:
+    except:  # noqa: E722
         # Iteration failed, likely there is no Governor available
         gov_names = []
         gov_prefixes = []
