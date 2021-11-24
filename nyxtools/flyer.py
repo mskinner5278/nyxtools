@@ -136,6 +136,7 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.acquire_period.put(exposure_per_image, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
         self.detector.cam.file_path.put(data_directory_name, wait=True)
+        self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
 
         # originally from detector_set_fileheader
         self.detector.cam.beam_center_x.put(x_beam, wait=True)
