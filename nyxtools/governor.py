@@ -2,9 +2,9 @@
     Rationale:
 
     The Governor is a dynamic beast. The PVs it exposes depend
-    on the configuration files given to it. Therefore, it would be 
-    hopelessly tedious to manually keep a Governor ophyd object in 
-    sync with the Governor IOC. There are at least two solutions to 
+    on the configuration files given to it. Therefore, it would be
+    hopelessly tedious to manually keep a Governor ophyd object in
+    sync with the Governor IOC. There are at least two solutions to
     this issue:
 
     1. Have the IOC auto-generate Governor ohpyd objects
@@ -22,64 +22,64 @@
 
     We take approach #2 here, with the hope that the benefits will
     outweight the drawbacks.
-    
+
     NOTE: given that the Governor ophyd object is created dynamically,
     the Governor IOC *must be running* when this file runs.
-    
-    The overall available auto-generated API will be as follows 
+
+    The overall available auto-generated API will be as follows
     (all leafs are EpicsSignals):
-    
+
     govs = _make_governors('XF:19IDC-ES', name='govs')
-    
+
     #
     # Global Governor control
     #
-    
+
     # Controls whether any Governor is active or not:
     govs.sel.active
-    
+
     # Selects which Governor to use ("Human", "Robot"):
-    govs.sel.config 
-    
+    govs.sel.config
+
     # Alias for the Robot configuration
     gov_rbt = govs.gov.Robot
-    
+
     #
     # Meta-data
     #
-    
+
     # Current state
     gov_rbt.state
-    
+
     # All existing states
     gov_rbt.states
-    
+
     # All existing devices
     gov_rbt.devices
-    
+
     # All currently reachable states
     gov_rbt.reachable
-    
+
     # All targets of the device "bsy"
     gov_rbt.dev.bsy.targets
-    
+
     #
     # Per-device configuration
     #
-    
+
     # Position for target "Down" of device "bsy"
     gov_rbt.dev.bsy.target_Down
-    
+
     # Low limit of device "bsy" when at state "SE"
     gov_rbt.dev.bsy.at_SE.low
-    
+
     # Pos for high limit of device "bsy" when at state "SE":
     gov_rbt.dev.bsy.at_SE.high
-    
+
     #
     # Changing state
     #
-    
+
     # Attempt to move the Governor to the SE state
     # (behaves as a positioner)
     RE(bps.abs_set(gov_rbt, 'SE', wait=True))
@@ -144,7 +144,7 @@ class GovernorDeviceLimits(Device):
 def _make_governor_device(targets: List[str], states: List[str]) -> type:
     """Returns a dynamically created class that represents a
     Governor device, with its existing targets and limits."""
-    targets_attr = [("targets", Cpt(EpicsSignal, f"Sts:Tgts-I"))]
+    targets_attr = [("targets", Cpt(EpicsSignal, "Sts:Tgts-I"))]
 
     # Targets of a device. A target is a named position.
     # Example PV: XF:19IDC-ES{Gov:Robot-Dev:cxy}Pos:Near-Pos
