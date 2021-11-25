@@ -239,9 +239,7 @@ class VectorProgram(Device):
         shutter_time = yield from bps.rd(self.shutter_time)
         daq_duration = yield from bps.rd(self.data_acq_duration)
 
-        estimated_total_time_ms = (
-            2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
-        )
+        estimated_total_time_ms = 2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
         timeout = 5 * estimated_total_time_ms / 1000.0
 
         # Start actual motion
