@@ -228,9 +228,7 @@ class VectorProgram(Device):
         shutter_time = int(self.shutter_time.get())
         daq_duration = int(self.data_acq_duration.get())
 
-        estimated_total_time_ms = (
-            2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
-        )
+        estimated_total_time_ms = 2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
         self.timeout = 5 * estimated_total_time_ms / 1000.0
         self.ready = True
 
