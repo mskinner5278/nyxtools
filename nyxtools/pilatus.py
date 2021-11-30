@@ -24,13 +24,13 @@ class PilatusSimulatedFilePlugin(Device, FileStoreBase):
 
 class PilatusBase(PilatusDetector):
     file = Cpt(PilatusSimulatedFilePlugin,
-               suffix="cam1:"
+               suffix="cam1:",
                write_path_template="",
                root="")
     image = Cpt(ImagePlugin, "image1:")
 
     def stage(self, *args, **kwargs):
-        ret = super().stage(*args, **kwargs):
+        ret = super().stage(*args, **kwargs)
         return ret
 
     def unstage(self):
