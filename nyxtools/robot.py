@@ -1,5 +1,6 @@
-from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO, PVPositionerPC
 from bluesky import plan_stubs as bps
+from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO
 
 
 class DensoOphydRobot(Device):
@@ -148,6 +149,7 @@ class DensoOphydRobot(Device):
             raise RuntimeError(f"Can't mount {sample_str}: failed to mount")
 
     def dismount(self, puck: str, sample: str):
+        sample_str = f"{sample}{puck}"
         if self.busy_sts.get() or not self.spindle_occupied_sts.get():
             raise RuntimeError(f"Can't dismount {sample_str}: busy or empty")
 

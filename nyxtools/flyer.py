@@ -6,11 +6,8 @@ import time as ttime
 from collections import deque
 
 import fabio
-
-from ophyd.sim import NullStatus
-from ophyd.status import SubscriptionStatus
-
 from mxtools.flyer import MXFlyer
+from ophyd.sim import NullStatus
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
@@ -41,7 +38,10 @@ class NYXFlyer(MXFlyer):
         self.unstage()
 
         now = ttime.time()
-        data = {f"{self.detector.name}_image": self._datum_ids["data"], "omega": self._datum_ids["omega"]}
+        data = {
+            f"{self.detector.name}_image": self._datum_ids["data"],
+            "omega": self._datum_ids["omega"],
+        }
         yield {
             "data": data,
             "timestamps": {key: now for key in data},
@@ -110,7 +110,7 @@ class NYXFlyer(MXFlyer):
 
     def _extract_metadata(self, field="omega"):
         with fabio.open(self._first_file, "r") as cbf:
-            return cbf.pilatus_headers('omega')
+            return cbf.pilatus_headers("omega")
 
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
@@ -119,7 +119,6 @@ class NYXFlyer(MXFlyer):
         exposure_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
-        file_number_start = kwargs["file_number_start"]
         x_beam = kwargs["x_beam"]
         y_beam = kwargs["y_beam"]
         wavelength = kwargs["wavelength"]
@@ -136,6 +135,7 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.acquire_period.put(exposure_per_image, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
         self.detector.cam.file_path.put(data_directory_name, wait=True)
+        self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
 
         # originally from detector_set_fileheader
         self.detector.cam.beam_center_x.put(x_beam, wait=True)
@@ -145,9 +145,9 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.wavelength.put(wavelength, wait=True)
         self.detector.cam.det_distance.put(det_distance_m, wait=True)
 
-        start_arm = ttime.time()
+        start_arm = ttime.monotonic()
         self.detector.cam.acquire.put(1, wait=True)
-        logger.info(f"arm time = {ttime.time() - start_arm}")
+        logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
     def configure_detector(self, **kwargs):
         ...
@@ -164,4 +164,14 @@ class NYXFlyer(MXFlyer):
         buffer_time_ms = 50
         shutter_lag_time_ms = 2
         shutter_time_ms = 2
-        self.vector.prepare_move(o, x_mm, y_mm, z_mm, exposure_ms, num_samples, buffer_time_ms, shutter_lag_time_ms)
+        self.vector.prepare_move(
+            o,
+            x_mm,
+            y_mm,
+            z_mm,
+            exposure_ms,
+            num_images,
+            buffer_time_ms,
+            shutter_lag_time_ms,
+            shutter_time_ms,
+        )
