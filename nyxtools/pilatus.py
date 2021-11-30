@@ -6,15 +6,18 @@ from ophyd.areadetector.base import ADComponent
 from ophyd.areadetector.filestore_mixins import FileStoreBase
 
 class PilatusSimulatedFilePlugin(Device, FileStoreBase):
-    file_path = ADComponent(EpicsPathSignal, "FilePath", string=True, path_semantics="posix")
-    external_name = Cpt(Signal, value="")
+    #file_path = ADComponent(EpicsPathSignal, "FilePath", string=True, path_semantics="posix")
+    #external_name = Cpt(Signal, value="")
 
     def __init__(self, *args, **kwargs):
         self.filestore_spec = "AD_PILATUS_MX"
+        self.frame_num = None
         super().__init__(*args, **kwargs)
+        self._datum_kwargs_map = dict() 
 
-    def stage(self):
-        write_path = datetime.datetime.now().strftime(self.write_path_template)
+    def stage(self): # getting values from resource document 
+        #res_uid = self.external_name.get() # 
+        #write_path = datetime.datetime.now().strftime(self.write_path_template)
         super().stage()
 
     def generate_datum(self, key, timestamp, datum_kwargs):
@@ -35,10 +38,3 @@ class PilatusBase(PilatusDetector):
 
     def unstage(self):
         super().unstage()
-
-    def describe(self):
-        return super().describe()
-
-    def trigger(self):
-        return super().trigger()
-

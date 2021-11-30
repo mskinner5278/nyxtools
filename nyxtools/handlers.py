@@ -16,7 +16,7 @@ class PilatusHandlerMX(HandlerBase):
         if not self._fpath.is_file():
             raise RuntimeError(f"File {self._fpath} does not exist")
 
-    def __call__(self, data_key="data", **kwargs):
+    def __call__(self, data_key="data"):
         self._file = cbfimage.read(self._fpath)
 
         if data_key == "data":
