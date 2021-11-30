@@ -1,7 +1,6 @@
 import time
 from typing import Tuple
 
-from bluesky import plan_stubs as bps
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import FormattedComponent as FCpt
