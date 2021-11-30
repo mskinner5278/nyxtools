@@ -1,14 +1,10 @@
-from typing import Tuple
 import time
+from typing import Tuple
 
-from ophyd import (
-    Device,
-    EpicsSignal,
-    EpicsSignalRO,
-    Component as Cpt,
-    FormattedComponent as FCpt
-)
 from bluesky import plan_stubs as bps
+from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO
+from ophyd import FormattedComponent as FCpt
 
 
 class VectorSignalWithRBV(EpicsSignal):
@@ -177,9 +173,16 @@ class VectorProgram(Device):
 
     def prepare_move(
         self,
-        o: Tuple[float,float], x: Tuple[float,float], y: Tuple[float, float], z: Tuple[float,float],
-        exposure_ms: float, num_samples: float, buffer_time_ms: float, shutter_lag_time_ms: float,
-        shutter_time_ms: float):
+        o: Tuple[float, float],
+        x: Tuple[float, float],
+        y: Tuple[float, float],
+        z: Tuple[float, float],
+        exposure_ms: float,
+        num_samples: float,
+        buffer_time_ms: float,
+        shutter_lag_time_ms: float,
+        shutter_time_ms: float,
+    ):
 
         # Configure motion
         self.sync.put(1)
@@ -230,6 +233,7 @@ class VectorProgram(Device):
         estimated_total_time_ms = 2*time_to_speed + buffer_time + 2*shutter_time + daq_duration
         self.timeout = 5*estimated_total_time_ms/1000.0
         self.ready = True
+
 
     def move(self):
         if not self.ready:

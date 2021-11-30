@@ -2,9 +2,9 @@
     Rationale:
 
     The Governor is a dynamic beast. The PVs it exposes depend
-    on the configuration files given to it. Therefore, it would be 
-    hopelessly tedious to manually keep a Governor ophyd object in 
-    sync with the Governor IOC. There are at least two solutions to 
+    on the configuration files given to it. Therefore, it would be
+    hopelessly tedious to manually keep a Governor ophyd object in
+    sync with the Governor IOC. There are at least two solutions to
     this issue:
 
     1. Have the IOC auto-generate Governor ohpyd objects
@@ -22,84 +22,80 @@
 
     We take approach #2 here, with the hope that the benefits will
     outweight the drawbacks.
-    
+
     NOTE: given that the Governor ophyd object is created dynamically,
     the Governor IOC *must be running* when this file runs.
-    
-    The overall available auto-generated API will be as follows 
+
+    The overall available auto-generated API will be as follows
     (all leafs are EpicsSignals):
-    
+
     govs = _make_governors('XF:19IDC-ES', name='govs')
-    
+
     #
     # Global Governor control
     #
-    
+
     # Controls whether any Governor is active or not:
     govs.sel.active
-    
+
     # Selects which Governor to use ("Human", "Robot"):
-    govs.sel.config 
-    
+    govs.sel.config
+
     # Alias for the Robot configuration
     gov_rbt = govs.gov.Robot
-    
+
     #
     # Meta-data
     #
-    
+
     # Current state
     gov_rbt.state
-    
+
     # All existing states
     gov_rbt.states
-    
+
     # All existing devices
     gov_rbt.devices
-    
+
     # All currently reachable states
     gov_rbt.reachable
-    
+
     # All targets of the device "bsy"
     gov_rbt.dev.bsy.targets
-    
+
     #
     # Per-device configuration
     #
-    
+
     # Position for target "Down" of device "bsy"
     gov_rbt.dev.bsy.target_Down
-    
+
     # Low limit of device "bsy" when at state "SE"
     gov_rbt.dev.bsy.at_SE.low
-    
+
     # Pos for high limit of device "bsy" when at state "SE":
     gov_rbt.dev.bsy.at_SE.high
-    
+
     #
     # Changing state
     #
-    
+
     # Attempt to move the Governor to the SE state
     # (behaves as a positioner)
     RE(bps.abs_set(gov_rbt, 'SE', wait=True))
 """
 
 
-from ophyd import (
-    Device,
-    PVPositionerPC,
-    EpicsSignal,
-    EpicsSignalRO,
-    Component as Cpt,
-    DynamicDeviceComponent as DDCpt,
-    get_cl,
-)
-from typing import List, Dict
+from typing import Dict, List
+
+from ophyd import Component as Cpt
+from ophyd import Device
+from ophyd import DynamicDeviceComponent as DDCpt
+from ophyd import EpicsSignal, EpicsSignalRO, PVPositionerPC, get_cl
 
 
 class GovernorPositioner(PVPositionerPC):
-    """ Mixin to control the Governor state as a positioner """
+    """Mixin to control the Governor state as a positioner"""
 
     setpoint = Cpt(EpicsSignal, "}Cmd:Go-Cmd")
     readback = Cpt(EpicsSignalRO, "}Sts:State-I")
@@ -108,7 +104,7 @@ class GovernorPositioner(PVPositionerPC):
 
 
 class GovernorMeta(Device):
-    """ Mixin to expose metadata for the Governor """
+    """Mixin to expose metadata for the Governor"""
 
     # Metadata
 
@@ -148,27 +144,20 @@ class GovernorDeviceLimits(Device):
 def _make_governor_device(targets: List[str], states: List[str]) -> type:
     """Returns a dynamically created class that represents a
     Governor device, with its existing targets and limits."""
-    targets_attr = [("targets", Cpt(EpicsSignal, f"Sts:Tgts-I"))]
+    targets_attr = [("targets", Cpt(EpicsSignal, "Sts:Tgts-I"))]
 
     # Targets of a device. A target is a named position.
     # Example PV: XF:19IDC-ES{Gov:Robot-Dev:cxy}Pos:Near-Pos
     # Target named "Near" for the cxy device.
-    target_attrs = [
-        (f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos"))
-        for target in targets
-    ]
+    target_attrs = [(f"target_{target}", Cpt(EpicsSignal, f"Pos:{target}-Pos")) for target in targets]
 
     # Limits of a device for each state.
     # Example PVs: XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:LLim-Pos
     #              XF:19IDC-ES{Gov:Robot-Dev:cxy}SA:HLim-Pos
     # Low and High limits for the cxy device at state SA
-    limit_attrs = [
-        (f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states
-    ]
+    limit_attrs = [(f"at_{state}", Cpt(GovernorDeviceLimits, f"{state}:")) for state in states]
 
-    return type(
-        "GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs)
-    )
+    return type("GovernorDevice", (Device,), dict(targets_attr + target_attrs + limit_attrs))
 
 
 def _make_governor(prefix: str) -> type:
@@ -203,7 +192,7 @@ def _make_governor(prefix: str) -> type:
     return Governor
 
 
-def _make_governors(prefix: str, name: str) -> "Governors":
+def _make_governors(prefix: str, name: str) -> "Governors":  # noqa: F821
     """Returns a dynamically created object that represents
     all available Governors, and allows switching between
     them, as well as deactivating them.
@@ -215,10 +204,10 @@ def _make_governors(prefix: str, name: str) -> "Governors":
     # instead of a list with a single str
     if isinstance(gov_names, str):
         gov_names = [gov_names]
-    
+
     try:
         gov_prefixes: List[str] = [f"{prefix}{{Gov:{name}" for name in gov_names]
-    except:
+    except:  # noqa: E722
         # Iteration failed, likely there is no Governor available
         gov_names = []
         gov_prefixes = []
