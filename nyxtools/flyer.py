@@ -145,9 +145,9 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.wavelength.put(wavelength, wait=True)
         self.detector.cam.det_distance.put(det_distance_m, wait=True)
 
-        start_arm = ttime.time()
+        start_arm = ttime.monotonic()
         self.detector.cam.acquire.put(1, wait=True)
-        logger.info(f"arm time = {ttime.time() - start_arm}")
+        logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
     def configure_detector(self, **kwargs):
         ...
