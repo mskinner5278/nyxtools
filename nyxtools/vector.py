@@ -4,6 +4,7 @@ from typing import Tuple
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import FormattedComponent as FCpt
+from ophyd.status import SubscriptionStatus
 
 
 class VectorSignalWithRBV(EpicsSignal):
@@ -207,7 +208,6 @@ class VectorProgram(Device):
 
         self.z.start.put(z[0])
         self.z.end.put(z[1])
-        # Do we need to wait here?
 
         # Start "motion"
         self.go.put(1)
@@ -218,7 +218,7 @@ class VectorProgram(Device):
         # Check for errors
         error = str(self.error.get())
 
-        if error != 0:
+        if error != "0":
             raise Exception(f"Failed to run vector. Error: {error}")
 
         # Estimate total motion time (in ms)
@@ -232,31 +232,28 @@ class VectorProgram(Device):
         self.timeout = 5 * estimated_total_time_ms / 1000.0
         self.ready = True
 
-    def move(self):
+    def start_move(self):
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
-        self.calc_only.set(False)
-        self.go.set(1)
+        self.calc_only.put(False)
 
-        # Wait until it is done
+        def start_callback(value, old_value):
+            if old_value == 0 and value == 1:
+                return True
+            else:
+                return False
 
-        # NOTE: ideally we should catch self.running going from 0->1 and then from 1->0
-        # but it is not guaranteed that we can observe these two transitions.
-        # instead, we wait a little bit after the motion is started (hopefully past 0->1)
-        # and then wait until either we see 1->0 or a timeout expires
+        run_status = SubscriptionStatus(self.running, start_callback, run=False)
+        self.go.put(1)
+        return run_status
 
-        time.sleep(0.2)
+    def track_move(self):
+        def finished_callback(value, old_value):
+            if old_value == 1 and value == 0:
+                return True
+            else:
+                return False
 
-        t = time.time()
-
-        while True:
-            running = self.running.get()
-            elapsed = time.time() - t
-
-            if not running:
-                break
-            if elapsed > self.timeout:
-                raise Exception("Run timed out, completion should be checked manually.")
-
-            time.sleep(0.1)
+        run_status = SubscriptionStatus(self.running, finished_callback, run=False)
+        return run_status
