@@ -35,4 +35,3 @@ class PilatusHandlerMX(HandlerBase):
 
         else:
             raise RuntimeError(f"Unknown key: {data_key}")
-
