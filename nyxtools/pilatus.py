@@ -1,9 +1,11 @@
 import datetime
-from ophyd.areadetector.detectors import PilatusDetector
+
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsPathSignal, EpicsSignal, ImagePlugin, Signal
 from ophyd.areadetector.base import ADComponent
+from ophyd.areadetector.detectors import PilatusDetector
 from ophyd.areadetector.filestore_mixins import FileStoreBase
+
 
 class PilatusSimulatedFilePlugin(Device, FileStoreBase):
     #file_path = ADComponent(EpicsPathSignal, "FilePath", string=True, path_semantics="posix")
