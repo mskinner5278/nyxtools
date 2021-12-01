@@ -1,8 +1,10 @@
 # import datetime
 
 from ophyd import Component as Cpt
+
 # from ophyd import Device, EpicsPathSignal, EpicsSignal, ImagePlugin, Signal
 from ophyd import Device, ImagePlugin
+
 # from ophyd.areadetector.base import ADComponent
 from ophyd.areadetector.detectors import PilatusDetector
 from ophyd.areadetector.filestore_mixins import FileStoreBase
@@ -30,10 +32,7 @@ class PilatusSimulatedFilePlugin(Device, FileStoreBase):
 
 
 class PilatusBase(PilatusDetector):
-    file = Cpt(PilatusSimulatedFilePlugin,
-               suffix="cam1:",
-               write_path_template="",
-               root="")
+    file = Cpt(PilatusSimulatedFilePlugin, suffix="cam1:", write_path_template="", root="")
     image = Cpt(ImagePlugin, "image1:")
 
     def stage(self, *args, **kwargs):
