@@ -1,7 +1,6 @@
 import time
 from typing import Tuple
 
-from bluesky import plan_stubs as bps
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import FormattedComponent as FCpt
@@ -78,6 +77,10 @@ class VectorProgram(Device):
     """
     Wraps PVs that control the vector program.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.ready = False
+        super().__init__(*args, **kwargs)
 
     #
     # Configuration
@@ -167,7 +170,7 @@ class VectorProgram(Device):
     # Set all vector motors start and end position to their current RBV values
     sync = Cpt(EpicsSignal, "Cmd:Sync-Cmd")
 
-    def run(
+    def prepare_move(
         self,
         o: Tuple[float, float],
         x: Tuple[float, float],
@@ -181,70 +184,60 @@ class VectorProgram(Device):
     ):
 
         # Configure motion
-        yield from bps.abs_set(self.sync, 1, wait=True)
+        self.sync.put(1)
 
-        yield from bps.mv(
-            self.calc_only,
-            True,  # Check for errors first
-            self.expose,
-            True,
-            self.hold,
-            False,
-            self.exposure,
-            exposure_ms,
-            self.num_samples,
-            num_samples,
-            self.buffer_time,
-            buffer_time_ms,
-            self.shutter_lag_time,
-            shutter_lag_time_ms,
-            self.shutter_time,
-            shutter_time_ms,
-            self.o.start,
-            o[0],
-            self.o.end,
-            o[1],
-            self.x.start,
-            x[0],
-            self.x.end,
-            x[1],
-            self.y.start,
-            y[0],
-            self.y.end,
-            y[1],
-            self.z.start,
-            z[0],
-            self.z.end,
-            z[1],
-            group="vec_config",
-        )
+        self.calc_only.put(True)
+        self.expose.put(True)
+        self.hold.put(False)
 
-        yield from bps.wait("vec_config")
+        self.exposure.put(exposure_ms)
+        self.num_samples.put(num_samples)
+        self.buffer_time.put(buffer_time_ms)
+        self.shutter_lag_time.put(shutter_lag_time_ms)
+        self.shutter_time.put(shutter_time_ms)
+
+        self.o.start.put(o[0])
+        self.o.end.put(o[1])
+
+        self.x.start.put(x[0])
+        self.x.end.put(x[1])
+
+        self.y.start.put(y[0])
+        self.y.end.put(y[1])
+
+        self.z.start.put(z[0])
+        self.z.end.put(z[1])
+        # Do we need to wait here?
 
         # Start "motion"
-        yield from bps.abs_set(self.go, 1, wait=False)
+        self.go.put(1)
 
         # There's no way to know it is done, so wait a little, it should be very fast
-        yield from bps.sleep(1.0)
+        time.sleep(1.0)
 
         # Check for errors
-        error = yield from bps.rd(self.error)  # TODO fix so returned type is string
+        error = str(self.error.get())
 
         if error != 0:
             raise Exception(f"Failed to run vector. Error: {error}")
 
         # Estimate total motion time (in ms)
-        time_to_speed = yield from bps.rd(self.max_time_to_speed)
-        buffer_time = yield from bps.rd(self.buffer_time)
-        shutter_time = yield from bps.rd(self.shutter_time)
-        daq_duration = yield from bps.rd(self.data_acq_duration)
+
+        time_to_speed = int(self.max_time_to_speed.get())
+        buffer_time = int(self.buffer_time.get())
+        shutter_time = int(self.shutter_time.get())
+        daq_duration = int(self.data_acq_duration.get())
 
         estimated_total_time_ms = 2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
-        timeout = 5 * estimated_total_time_ms / 1000.0
+        self.timeout = 5 * estimated_total_time_ms / 1000.0
+        self.ready = True
 
+    def move(self):
+        if not self.ready:
+            raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
-        yield from bps.abs_set(self.calc_only, False, wait=True)
-        yield from bps.abs_set(self.go, 1, wait=False)
+        self.calc_only.set(False)
+        self.go.set(1)
 
         # Wait until it is done
 
@@ -253,15 +246,17 @@ class VectorProgram(Device):
         # instead, we wait a little bit after the motion is started (hopefully past 0->1)
         # and then wait until either we see 1->0 or a timeout expires
 
-        yield from bps.sleep(0.2)
+        time.sleep(0.2)
 
         t = time.time()
 
         while True:
-            running = yield from bps.rd(self.running)
+            running = self.running.get()
             elapsed = time.time() - t
 
-            if not running or elapsed > timeout:
+            if not running:
                 break
+            if elapsed > self.timeout:
+                raise Exception("Run timed out, completion should be checked manually.")
 
-            yield from bps.sleep(0.1)
+            time.sleep(0.1)
