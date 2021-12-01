@@ -47,6 +47,9 @@ setup(
     python_requires=">={}".format(".".join(str(n) for n in min_version)),
     packages=find_packages(exclude=["docs", "tests"]),
     entry_points={
+        "databroker.handlers": [
+            "AD_PILATUS_MX = nyxtools.handlers:PilatusHandlerMX",
+        ],
         "console_scripts": [
             # 'command = some.module:some_function',
         ],
