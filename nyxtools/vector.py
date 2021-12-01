@@ -1,14 +1,10 @@
-from typing import Tuple
 import time
+from typing import Tuple
 
-from ophyd import (
-    Device,
-    EpicsSignal,
-    EpicsSignalRO,
-    Component as Cpt,
-    FormattedComponent as FCpt
-)
 from bluesky import plan_stubs as bps
+from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO
+from ophyd import FormattedComponent as FCpt
 
 
 class VectorSignalWithRBV(EpicsSignal):
@@ -173,40 +169,57 @@ class VectorProgram(Device):
 
     def run(
         self,
-        o: Tuple[float,float], x: Tuple[float,float], y: Tuple[float, float], z: Tuple[float,float],
-        exposure_ms: float, num_samples: float, buffer_time_ms: float, shutter_lag_time_ms: float,
-        shutter_time_ms: float):
+        o: Tuple[float, float],
+        x: Tuple[float, float],
+        y: Tuple[float, float],
+        z: Tuple[float, float],
+        exposure_ms: float,
+        num_samples: float,
+        buffer_time_ms: float,
+        shutter_lag_time_ms: float,
+        shutter_time_ms: float,
+    ):
 
         # Configure motion
         yield from bps.abs_set(self.sync, 1, wait=True)
 
         yield from bps.mv(
-            self.calc_only, True, # Check for errors first
-            self.expose, True,
-            self.hold, False,
-
-            self.exposure, exposure_ms,
-            self.num_samples, num_samples,
-            self.buffer_time, buffer_time_ms,
-            self.shutter_lag_time, shutter_lag_time_ms,
-            self.shutter_time, shutter_time_ms,
-
-            self.o.start, o[0],
-            self.o.end, o[1],
-
-            self.x.start, x[0],
-            self.x.end, x[1],
-
-            self.y.start, y[0],
-            self.y.end, y[1],
-
-            self.z.start, z[0],
-            self.z.end, z[1],
-
-            group='vec_config'
+            self.calc_only,
+            True,  # Check for errors first
+            self.expose,
+            True,
+            self.hold,
+            False,
+            self.exposure,
+            exposure_ms,
+            self.num_samples,
+            num_samples,
+            self.buffer_time,
+            buffer_time_ms,
+            self.shutter_lag_time,
+            shutter_lag_time_ms,
+            self.shutter_time,
+            shutter_time_ms,
+            self.o.start,
+            o[0],
+            self.o.end,
+            o[1],
+            self.x.start,
+            x[0],
+            self.x.end,
+            x[1],
+            self.y.start,
+            y[0],
+            self.y.end,
+            y[1],
+            self.z.start,
+            z[0],
+            self.z.end,
+            z[1],
+            group="vec_config",
         )
 
-        yield from bps.wait('vec_config')
+        yield from bps.wait("vec_config")
 
         # Start "motion"
         yield from bps.abs_set(self.go, 1, wait=False)
@@ -226,8 +239,8 @@ class VectorProgram(Device):
         shutter_time = yield from bps.rd(self.shutter_time)
         daq_duration = yield from bps.rd(self.data_acq_duration)
 
-        estimated_total_time_ms = 2*time_to_speed + buffer_time + 2*shutter_time + daq_duration
-        timeout = 5*estimated_total_time_ms/1000.0
+        estimated_total_time_ms = 2 * time_to_speed + buffer_time + 2 * shutter_time + daq_duration
+        timeout = 5 * estimated_total_time_ms / 1000.0
 
         # Start actual motion
         yield from bps.abs_set(self.calc_only, False, wait=True)
