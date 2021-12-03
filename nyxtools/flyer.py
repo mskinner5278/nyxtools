@@ -8,6 +8,7 @@ from collections import deque
 import fabio
 from mxtools.flyer import MXFlyer
 from ophyd.sim import NullStatus
+from ophyd.status import SubscriptionStatus
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
@@ -30,9 +31,14 @@ class NYXFlyer(MXFlyer):
 
     def kickoff(self):
         self.detector.stage()
-        self.vector.move()
 
-        return NullStatus()
+        st = self.vector.move()
+
+        return st
+
+    def complete(self):
+        st = self.vector.track_move()
+        return st
 
     def collect(self):
         self.unstage()
@@ -124,30 +130,45 @@ class NYXFlyer(MXFlyer):
         wavelength = kwargs["wavelength"]
         det_distance_m = kwargs["det_distance_m"]
 
-        self.detector.cam.save_files.put(1, wait=True)
-        self.detector.cam.file_owner.put(getpass.getuser(), wait=True)
-        self.detector.cam.file_owner_grp.put(grp.getgrgid(os.getgid())[0], wait=True)
-        self.detector.cam.file_perms.put(420, wait=True)
+        # These components do not exist for Pilatus (copied from Eiger),
+        # so commenting them out now:
+        # self.detector.cam.save_files.put(1, wait=True)
+        # self.detector.cam.file_owner.put(getpass.getuser(), wait=True)
+        # self.detector.cam.file_owner_grp.put(grp.getgrgid(os.getgid())[0], wait=True)
+        # self.detector.cam.file_perms.put(420, wait=True)
+
         file_prefix_minus_directory = str(file_prefix)
         file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
 
         self.detector.cam.acquire_time.put(exposure_per_image, wait=True)
-        self.detector.cam.acquire_period.put(exposure_per_image, wait=True)
+        self.detector.cam.acquire_period.put(exposure_per_image + 0.01, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
-        self.detector.cam.file_path.put(data_directory_name, wait=True)
-        self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
+        # self.detector.cam.file_path.put(data_directory_name, wait=True)
+        # self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
 
         # originally from detector_set_fileheader
-        self.detector.cam.beam_center_x.put(x_beam, wait=True)
-        self.detector.cam.beam_center_y.put(y_beam, wait=True)
-        self.detector.cam.omega_incr.put(width, wait=True)
-        self.detector.cam.omega_start.put(start, wait=True)
+        self.detector.cam.beam_x.put(x_beam, wait=True)
+        self.detector.cam.beam_y.put(y_beam, wait=True)
+        self.detector.cam.angle_incr.put(width, wait=True)
+        self.detector.cam.start_angle.put(start, wait=True)
         self.detector.cam.wavelength.put(wavelength, wait=True)
-        self.detector.cam.det_distance.put(det_distance_m, wait=True)
+        self.detector.cam.det_dist.put(det_distance_m, wait=True)
 
         start_arm = ttime.monotonic()
-        self.detector.cam.acquire.put(1, wait=True)
         logger.info(f"arm time = {ttime.monotonic() - start_arm}")
+
+        def armed_callback(value, old_value, **kwargs):
+            if old_value == 0 and value == 1:
+                return True
+            return False
+
+        status = SubscriptionStatus(self.detector.cam.armed, armed_callback, run=False)
+
+        self.detector.cam.acquire.set(1)
+
+        status.wait()
+
+        # return status
 
     def configure_detector(self, **kwargs):
         ...
@@ -155,7 +176,7 @@ class NYXFlyer(MXFlyer):
     def configure_vector(self, **kwargs):
         angle_start = kwargs["angle_start"]
         scan_width = kwargs["scan_width"]
-        exposure_ms = kwargs["exposure_period_per_image"]
+        exposure_ms = kwargs["exposure_period_per_image"] * 1.e3
         num_images = kwargs["num_images"]
         x_mm = (kwargs["x_start_um"] / 1000, kwargs["x_start_um"] / 1000)
         y_mm = (kwargs["y_start_um"] / 1000, kwargs["y_start_um"] / 1000)

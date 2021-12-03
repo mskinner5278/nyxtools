@@ -144,7 +144,7 @@ class VectorProgram(Device):
     #
 
     # Indicates whether a vector motion is running
-    running = Cpt(EpicsSignalRO, "Sts:Running-Sts")
+    active = Cpt(EpicsSignalRO, "Sts:Running-Sts")
 
     # Current state of the vector:
     #   Idle, Backup, Holding or Acquiring
@@ -217,9 +217,11 @@ class VectorProgram(Device):
 
         # Check for errors
         error = str(self.error.get())
+        error_message = self.error.get(as_string=True)
 
         if error != "0":
-            raise Exception(f"Failed to run vector. Error: {error}")
+            raise Exception(f"\nFailed to run vector.\nError: {error}\n"
+                            f"Error message: {error_message}")
 
         # Estimate total motion time (in ms)
 
@@ -232,7 +234,7 @@ class VectorProgram(Device):
         self.timeout = 5 * estimated_total_time_ms / 1000.0
         self.ready = True
 
-    def start_move(self):
+    def move(self):
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
@@ -244,7 +246,7 @@ class VectorProgram(Device):
             else:
                 return False
 
-        run_status = SubscriptionStatus(self.running, start_callback, run=False)
+        run_status = SubscriptionStatus(self.active, start_callback, run=False)
         self.go.put(1)
         return run_status
 
@@ -255,5 +257,5 @@ class VectorProgram(Device):
             else:
                 return False
 
-        run_status = SubscriptionStatus(self.running, finished_callback, run=False)
+        run_status = SubscriptionStatus(self.active, finished_callback, run=False)
         return run_status
