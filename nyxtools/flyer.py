@@ -6,6 +6,7 @@ import time as ttime
 from collections import deque
 
 import fabio
+from event_model import compose_resource
 from mxtools.flyer import MXFlyer
 from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
@@ -21,18 +22,41 @@ class NYXFlyer(MXFlyer):
         self.zebra = zebra
         self.detector = detector
 
+        self.data_directory_name = None
+        self.file_prefix = None
+        self.num_images = None
+        self.file_number_start = None
+
         self._asset_docs_cache = deque()
-        self._resource_uids = []
-        self._datum_counter = None
-        self._datum_ids = DEFAULT_DATUM_DICT
+        self._resource_document = None
+        self._datum_factory = None
+
+        # self._resource_uids = []
+        # self._datum_counter = None
+        # TODO: rework to use datum ids dictionary.
+        # self._datum_ids = DEFAULT_DATUM_DICT
+        self._datum_ids = []
         self._first_file = None
 
         self._collection_dictionary = None
 
+    def update_parameters(self, **kwargs):
+        super().update_parameters(**kwargs)
+        self.data_directory_name = kwargs.get("data_directory_name", "/nyx-data/test")
+        self.file_prefix = kwargs.get("file_prefix", "test")
+        self.num_images = kwargs.get("num_images", 1)
+        self.file_number_start = kwargs.get("file_number_start", 1)
+
     def kickoff(self):
         self.detector.stage()
 
+        def zebra_callback(*args, **kwargs):
+            print(f"\n{ttime.ctime()}:\n\targs: {args}\n\tkwargs: {kwargs}\n")
+            self.zebra.pc.arm_signal.put(1)
+            return NullStatus()
+
         st = self.vector.move()
+        st.add_callback(zebra_callback)
 
         return st
 
@@ -40,13 +64,25 @@ class NYXFlyer(MXFlyer):
         st = self.vector.track_move()
         return st
 
+    def describe_collect(self):
+        return_dict = {"primary":
+                        {f'{self.detector.name}_image':
+                            {'source': f'{self.detector.name}_image',
+                             'dtype': 'array',
+                             'shape': [-1, -1],  # TODO: read shapes from AD
+                             'external': 'FILESTORE:'}
+                         }
+                        }
+        return return_dict
+
     def collect(self):
         self.unstage()
 
         now = ttime.time()
         data = {
-            f"{self.detector.name}_image": self._datum_ids["data"],
-            "omega": self._datum_ids["omega"],
+            # f"{self.detector.name}_image": self._datum_ids["data"],
+            # "omega": self._datum_ids["omega"],
+            f"{self.detector.name}_image": self._datum_ids[0]
         }
         yield {
             "data": data,
@@ -57,62 +93,88 @@ class NYXFlyer(MXFlyer):
 
     def collect_asset_docs(self):
 
-        asset_docs_cache = []
+        # asset_docs_cache = []
+
+        self._resource_document, self._datum_factory, _ = compose_resource(
+            start={'uid': 'needed for compose_resource() but will be discarded'},
+            spec="AD_PILATUS_MX",
+            root=self.data_directory_name,
+            resource_path=f"{self.file_prefix}_{self.file_number_start:04d}.cbf",
+            resource_kwargs={},
+        )
+
+        self._resource_document.pop('run_start')
+        self._asset_docs_cache.append(('resource', self._resource_document))
+
+        datum_document = self._datum_factory(datum_kwargs={})
+        print(f"\n\tdatum_document: {datum_document}\n")
+
+        self._datum_ids.append(datum_document["datum_id"])
+
+        self._asset_docs_cache.append(("datum", datum_document))
+
+        self._resource_document = None
+        self._datum_factory = None
+
+        items = list(self._asset_docs_cache)
+        self._asset_docs_cache.clear()
+        for item in items:
+            yield item
 
         # Get the Resource which was produced when the detector was staged.
-        ((name, resource),) = self.detector.file.collect_asset_docs()
+        # ((name, resource),) = self.detector.file.collect_asset_docs()
 
-        asset_docs_cache.append(("resource", resource))
-        self._datum_ids = DEFAULT_DATUM_DICT
-        # Generate Datum documents from scratch here, because the detector was
-        # triggered externally by the DeltaTau, never by ophyd.
-        resource_uid = resource["uid"]
-        # num_points = int(math.ceil(self.detector.cam.num_images.get() /
-        #                 self.detector.cam.fw_num_images_per_file.get()))
+        # asset_docs_cache.append(("resource", resource))
+        # self._datum_ids = DEFAULT_DATUM_DICT
+        # # Generate Datum documents from scratch here, because the detector was
+        # # triggered externally by the DeltaTau, never by ophyd.
+        # resource_uid = resource["uid"]
+        # # num_points = int(math.ceil(self.detector.cam.num_images.get() /
+        # #                 self.detector.cam.fw_num_images_per_file.get()))
 
-        # We are currently generating only one datum document for all frames, that's why
-        #   we use the 0th index below.
-        #
-        # Uncomment & update the line below if more datum documents are needed:
-        # for i in range(num_points):
+        # # We are currently generating only one datum document for all frames, that's why
+        # #   we use the 0th index below.
+        # #
+        # # Uncomment & update the line below if more datum documents are needed:
+        # # for i in range(num_points):
 
-        self._first_file = f"{resource['root']}/{resource['resource_path']}_00001.cbf"
-        if not os.path.isfile(self._first_file):
-            raise RuntimeError(f"File {self._first_file} does not exist")
+        # self._first_file = f"{resource['root']}/{resource['resource_path']}_00001.cbf"
+        # if not os.path.isfile(self._first_file):
+        #     raise RuntimeError(f"File {self._first_file} does not exist")
 
-        # The pseudocode below is from Tom Caswell explaining the relationship between resource, datum, and events.
-        #
-        # resource = {
-        #     "resource_id": "RES",
-        #     "resource_kwargs": {},  # this goes to __init__
-        #     "spec": "AD-EIGER-MX",
-        #     ...: ...,
-        # }
-        # datum = {
-        #     "datum_id": "a",
-        #     "datum_kwargs": {"data_key": "data"},  # this goes to __call__
-        #     "resource": "RES",
-        #     ...: ...,
-        # }
-        # datum = {
-        #     "datum_id": "b",
-        #     "datum_kwargs": {"data_key": "omega"},
-        #     "resource": "RES",
-        #     ...: ...,
-        # }
+        # # The pseudocode below is from Tom Caswell explaining the relationship between resource, datum, and events.
+        # #
+        # # resource = {
+        # #     "resource_id": "RES",
+        # #     "resource_kwargs": {},  # this goes to __init__
+        # #     "spec": "AD-EIGER-MX",
+        # #     ...: ...,
+        # # }
+        # # datum = {
+        # #     "datum_id": "a",
+        # #     "datum_kwargs": {"data_key": "data"},  # this goes to __call__
+        # #     "resource": "RES",
+        # #     ...: ...,
+        # # }
+        # # datum = {
+        # #     "datum_id": "b",
+        # #     "datum_kwargs": {"data_key": "omega"},
+        # #     "resource": "RES",
+        # #     ...: ...,
+        # # }
 
-        # event = {...: ..., "data": {"detector_img": "a", "omega": "b"}}
+        # # event = {...: ..., "data": {"detector_img": "a", "omega": "b"}}
 
-        for data_key in self._datum_ids.keys():
-            datum_id = f"{resource_uid}/{data_key}"
-            self._datum_ids[data_key] = datum_id
-            datum = {
-                "resource": resource_uid,
-                "datum_id": datum_id,
-                "datum_kwargs": {"data_key": data_key},
-            }
-            asset_docs_cache.append(("datum", datum))
-        return tuple(asset_docs_cache)
+        # for data_key in self._datum_ids.keys():
+        #     datum_id = f"{resource_uid}/{data_key}"
+        #     self._datum_ids[data_key] = datum_id
+        #     datum = {
+        #         "resource": resource_uid,
+        #         "datum_id": datum_id,
+        #         "datum_kwargs": {"data_key": data_key},
+        #     }
+        #     asset_docs_cache.append(("datum", datum))
+        # return tuple(asset_docs_cache)
 
     def _extract_metadata(self, field="omega"):
         with fabio.open(self._first_file, "r") as cbf:

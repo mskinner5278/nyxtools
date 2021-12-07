@@ -22,8 +22,25 @@ class PilatusSimulatedFilePlugin(Device, FileStoreBase):
         self._datum_kwargs_map = dict()
 
     def stage(self):  # getting values from resource document
-        # res_uid = self.external_name.get() #
+
+        # print(f"{print_now()} staging detector {self.name}")
+        # res_uid = self.external_name.get()
         # write_path = datetime.datetime.now().strftime(self.write_path_template)
+        # set_and_wait(self.file_path, f"{write_path}/")
+        # set_and_wait(self.file_write_name_pattern, "{}_$id".format(res_uid))
+        # super().stage()
+        # fn = PurePath(self.file_path.get()) / res_uid
+        # ipf = int(self.file_write_images_per_file.get())  # noqa
+        # # logger.debug("Inserting resource with filename %s", fn)
+        # self._fn = fn
+        # # res_kwargs = {"images_per_file": ipf}
+        # seq_id = int(self.sequence_id.get())  # det writes to the NEXT one
+        # res_kwargs = {"seq_id": seq_id}
+        # self._generate_resource(res_kwargs)
+        # print(f"{print_now()} done staging detector {self.name}")
+        # # res_uid = self.external_name.get() #
+        # # write_path = datetime.datetime.now().strftime(self.write_path_template)
+
         super().stage()
 
     def generate_datum(self, key, timestamp, datum_kwargs):

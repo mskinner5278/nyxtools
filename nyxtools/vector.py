@@ -148,7 +148,7 @@ class VectorProgram(Device):
 
     # Current state of the vector:
     #   Idle, Backup, Holding or Acquiring
-    state = Cpt(EpicsSignalRO, "Sts:State-Sts")
+    state = Cpt(EpicsSignalRO, "Sts:State-Sts", string=True)
 
     # Error reported by the vector program:
     #   None, Aborted, Zero Exposure, Too Fast, Zero Shutter, Too Slow
@@ -240,22 +240,41 @@ class VectorProgram(Device):
         # Start actual motion
         self.calc_only.put(False)
 
-        def start_callback(value, old_value):
-            if old_value == 0 and value == 1:
+        # Note: 'kwargs' are needed here as extra information is passed to the callback, such as:
+        # kwargs: {'timestamp': 1638904545.824989,
+        #          'status': <AlarmStatus.NO_ALARM: 0>,
+        #          'severity': <AlarmSeverity.NO_ALARM: 0>,
+        #          'enum_strs': ('No', 'Yes'),
+        #          'sub_type': 'value',
+        #          'obj': EpicsSignalRO(read_pv='XF:19IDC-ES{Gon:1-Vec}Sts:Running-Sts', name='vector_active', parent='vector', value=0, timestamp=1638904545.824989, auto_monitor=False, string=False)}
+        def start_callback(value, old_value, **kwargs):
+            print(f"{time.ctime()}: {old_value} -> {value}")
+            if old_value == "Backup" and value == "Acquiring":
+                print(f"{time.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
+                print(f"{time.ctime()}: changing {old_value} -> {value}...")
                 return False
 
-        run_status = SubscriptionStatus(self.active, start_callback, run=False)
-        self.go.put(1)
+        run_status = SubscriptionStatus(self.state, start_callback, run=True)
+        print(f"{time.ctime()}: subscribed to {self.active.name}")
+
+        time.sleep(1.0)
+
+        go_status = self.go.put(1)
+        print(f"{time.ctime()}: go.put(1)")
+
         return run_status
 
     def track_move(self):
-        def finished_callback(value, old_value):
-            if old_value == 1 and value == 0:
+        def finished_callback(value, old_value, **kwargs):
+            print(f"{time.ctime()}: {old_value} -> {value}")
+            if old_value == "Acquiring" and value == "Idle":
+                print(f"{time.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
+                print(f"{time.ctime()}: changing {old_value} -> {value}...")
                 return False
 
-        run_status = SubscriptionStatus(self.active, finished_callback, run=False)
+        run_status = SubscriptionStatus(self.state, finished_callback, run=True)
         return run_status
