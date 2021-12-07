@@ -2,7 +2,7 @@ import logging
 import pathlib
 
 from fabio import cbfimage
-from ophyd.area_detector_handlers import HandlerBase
+from area_detector_handlers import HandlerBase
 
 logger = logging.getLogger(__name__)
 
