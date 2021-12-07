@@ -196,3 +196,12 @@ class NYXFlyer(MXFlyer):
             shutter_lag_time_ms,
             shutter_time_ms,
         )
+
+    def zebra_daq_prep(self):
+        self.zebra.reset.put(1)
+        ttime.sleep(2.0)
+        self.zebra.out1.put(31)
+        self.zebra.m1_set_pos.put(1)
+        self.zebra.m2_set_pos.put(1)
+        self.zebra.m3_set_pos.put(1)
+        self.zebra.pc.arm.trig_source.put(0)  # Soft triggering for NYX
