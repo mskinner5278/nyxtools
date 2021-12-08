@@ -41,11 +41,12 @@ class NYXFlyer(MXFlyer):
         self._collection_dictionary = None
 
     def update_parameters(self, **kwargs):
-        super().update_parameters(**kwargs)
         self.data_directory_name = kwargs.get("data_directory_name", "/nyx-data/test")
         self.file_prefix = kwargs.get("file_prefix", "test")
         self.num_images = kwargs.get("num_images", 1)
         self.file_number_start = kwargs.get("file_number_start", 1)
+
+        super().update_parameters(**kwargs)
 
     def kickoff(self):
         self.detector.stage()
@@ -78,48 +79,52 @@ class NYXFlyer(MXFlyer):
     def collect(self):
         self.unstage()
 
-        now = ttime.time()
-        data = {
-            # f"{self.detector.name}_image": self._datum_ids["data"],
-            # "omega": self._datum_ids["omega"],
-            f"{self.detector.name}_image": self._datum_ids[0]
-        }
-        yield {
-            "data": data,
-            "timestamps": {key: now for key in data},
-            "time": now,
-            "filled": {key: False for key in data},
-        }
+        for datum_id in self._datum_ids:
+            now = ttime.time()
+            data = {
+                # f"{self.detector.name}_image": self._datum_ids["data"],
+                # "omega": self._datum_ids["omega"],
+                f"{self.detector.name}_image": datum_id
+            }
+            yield {
+                "data": data,
+                "timestamps": {key: now for key in data},
+                "time": now,
+                "filled": {key: False for key in data},
+            }
 
     def collect_asset_docs(self):
 
         # asset_docs_cache = []
 
-        self._resource_document, self._datum_factory, _ = compose_resource(
-            start={'uid': 'needed for compose_resource() but will be discarded'},
-            spec="AD_PILATUS_MX",
-            root=self.data_directory_name,
-            resource_path=f"{self.file_prefix}_{self.file_number_start:04d}.cbf",
-            resource_kwargs={},
-        )
+        start_num = self.file_number_start
+        end_num = self.file_number_start + self.num_images
+        for img in range(start_num, end_num):
+            self._resource_document, self._datum_factory, _ = compose_resource(
+                start={'uid': 'needed for compose_resource() but will be discarded'},
+                spec="AD_PILATUS_MX",
+                root=self.data_directory_name,
+                resource_path=f"{self.file_prefix}_{img:04d}.cbf",
+                resource_kwargs={},
+            )
 
-        self._resource_document.pop('run_start')
-        self._asset_docs_cache.append(('resource', self._resource_document))
+            self._resource_document.pop('run_start')
+            self._asset_docs_cache.append(('resource', self._resource_document))
 
-        datum_document = self._datum_factory(datum_kwargs={})
-        print(f"\n\tdatum_document: {datum_document}\n")
+            datum_document = self._datum_factory(datum_kwargs={})
+            print(f"\n\tdatum_document: {datum_document}\n")
 
-        self._datum_ids.append(datum_document["datum_id"])
+            self._datum_ids.append(datum_document["datum_id"])
 
-        self._asset_docs_cache.append(("datum", datum_document))
+            self._asset_docs_cache.append(("datum", datum_document))
 
-        self._resource_document = None
-        self._datum_factory = None
+            self._resource_document = None
+            self._datum_factory = None
 
-        items = list(self._asset_docs_cache)
-        self._asset_docs_cache.clear()
-        for item in items:
-            yield item
+            items = list(self._asset_docs_cache)
+            self._asset_docs_cache.clear()
+            for item in items:
+                yield item
 
         # Get the Resource which was produced when the detector was staged.
         # ((name, resource),) = self.detector.file.collect_asset_docs()
@@ -216,6 +221,11 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.wavelength.put(wavelength, wait=True)
         self.detector.cam.det_dist.put(det_distance_m * 1000, wait=True)
 
+        # Setting the file start number, etc.
+        self.detector.file.file_path.put(self.data_directory_name)
+        self.detector.file.file_name.put(self.file_prefix)
+        self.detector.file.file_number.put(self.file_number_start)
+
         start_arm = ttime.monotonic()
         logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
@@ -233,7 +243,8 @@ class NYXFlyer(MXFlyer):
         # return status
 
     def configure_detector(self, **kwargs):
-        ...
+        # TODO: clean up in the base class.
+        pass
 
     def configure_vector(self, **kwargs):
         angle_start = kwargs["angle_start"]
