@@ -205,7 +205,7 @@ class NYXFlyer(MXFlyer):
         start = kwargs["angle_start"]
         width = kwargs["img_width"]
         num_images = kwargs["num_images"]
-        exposure_per_image = kwargs["exposure_period_per_image"]
+        exposure_period_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
         x_beam = kwargs["x_beam"]
@@ -223,8 +223,8 @@ class NYXFlyer(MXFlyer):
         file_prefix_minus_directory = str(file_prefix)
         file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
 
-        self.detector.cam.acquire_time.put(exposure_per_image, wait=True)
-        self.detector.cam.acquire_period.put(exposure_per_image + 0.0024, wait=True)
+        self.detector.cam.acquire_time.put(exposure_period_per_image - 0.0024, wait=True)
+        self.detector.cam.acquire_period.put(exposure_period_per_image, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
         # self.detector.cam.file_path.put(data_directory_name, wait=True)
         # self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
