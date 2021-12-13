@@ -62,8 +62,24 @@ class NYXFlyer(MXFlyer):
         return st
 
     def complete(self):
-        st = self.vector.track_move()
-        return st
+        st_vector = self.vector.track_move()
+
+        def detector_callback(value, old_value, **kwargs):
+            print(f"\n{ttime.ctime()}: DETECTOR status {old_value} -> {value}\n")
+            # if old_value == "Acquiring" and value == "Done":
+            if old_value == 1 and value == 0:
+                print(f"{ttime.ctime()}: DETECTOR status successfully changed {old_value} -> {value}")
+                return True
+            else:
+                print(f"{ttime.ctime()}: DETECTOR status changing {old_value} -> {value}...")
+                return False
+
+        # token = self.detector.cam.acquire.subscribe(detector_callback)
+        # st_detector = self.detector.cam.acquire._status
+
+        st_detector = SubscriptionStatus(self.detector.cam.acquire, detector_callback, run=True)
+
+        return st_vector & st_detector
 
     def describe_collect(self):
         return_dict = {"primary":
