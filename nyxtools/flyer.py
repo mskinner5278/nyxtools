@@ -224,7 +224,7 @@ class NYXFlyer(MXFlyer):
         file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
 
         self.detector.cam.acquire_time.put(exposure_per_image, wait=True)
-        self.detector.cam.acquire_period.put(exposure_per_image + 0.01, wait=True)
+        self.detector.cam.acquire_period.put(exposure_per_image + 0.0024, wait=True)
         self.detector.cam.num_images.put(num_images, wait=True)
         # self.detector.cam.file_path.put(data_directory_name, wait=True)
         # self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
@@ -243,7 +243,6 @@ class NYXFlyer(MXFlyer):
         self.detector.file.file_number.put(self.file_number_start)
 
         start_arm = ttime.monotonic()
-        logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
@@ -255,6 +254,7 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.acquire.set(1)
 
         status.wait()
+        logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
         # return status
 
