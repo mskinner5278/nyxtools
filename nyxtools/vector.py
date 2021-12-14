@@ -220,8 +220,7 @@ class VectorProgram(Device):
         error_message = self.error.get(as_string=True)
 
         if error != "0":
-            raise Exception(f"\nFailed to run vector.\nError: {error}\n"
-                            f"Error message: {error_message}")
+            raise Exception(f"\nFailed to run vector.\nError: {error}\n" f"Error message: {error_message}")
 
         # Estimate total motion time (in ms)
 
@@ -246,7 +245,10 @@ class VectorProgram(Device):
         #          'severity': <AlarmSeverity.NO_ALARM: 0>,
         #          'enum_strs': ('No', 'Yes'),
         #          'sub_type': 'value',
-        #          'obj': EpicsSignalRO(read_pv='XF:19IDC-ES{Gon:1-Vec}Sts:Running-Sts', name='vector_active', parent='vector', value=0, timestamp=1638904545.824989, auto_monitor=False, string=False)}
+        #          'obj': EpicsSignalRO(read_pv='XF:19IDC-ES{Gon:1-Vec}Sts:Running-Sts',
+        #                               name='vector_active', parent='vector', value=0,
+        #                               timestamp=1638904545.824989, auto_monitor=False,
+        #                               string=False)}
         def start_callback(value, old_value, **kwargs):
             print(f"{time.ctime()}: {old_value} -> {value}")
             if old_value == "Backup" and value == "Acquiring":
@@ -261,7 +263,7 @@ class VectorProgram(Device):
 
         time.sleep(1.0)
 
-        go_status = self.go.put(1)
+        self.go.put(1)
         print(f"{time.ctime()}: go.put(1)")
 
         return run_status

@@ -1,7 +1,8 @@
-import getpass
-import grp
+# import getpass
+# import grp
 import logging
-import os
+
+# import os
 import time as ttime
 from collections import deque
 
@@ -82,14 +83,16 @@ class NYXFlyer(MXFlyer):
         return st_vector & st_detector
 
     def describe_collect(self):
-        return_dict = {"primary":
-                        {f'{self.detector.name}_image':
-                            {'source': f'{self.detector.name}_image',
-                             'dtype': 'array',
-                             'shape': [-1, -1],  # TODO: read shapes from AD
-                             'external': 'FILESTORE:'}
-                         }
-                        }
+        return_dict = {
+            "primary": {
+                f"{self.detector.name}_image": {
+                    "source": f"{self.detector.name}_image",
+                    "dtype": "array",
+                    "shape": [-1, -1],  # TODO: read shapes from AD
+                    "external": "FILESTORE:",
+                }
+            }
+        }
         return return_dict
 
     def collect(self):
@@ -117,15 +120,15 @@ class NYXFlyer(MXFlyer):
         end_num = self.file_number_start + self.num_images
         for img in range(start_num, end_num):
             self._resource_document, self._datum_factory, _ = compose_resource(
-                start={'uid': 'needed for compose_resource() but will be discarded'},
+                start={"uid": "needed for compose_resource() but will be discarded"},
                 spec="AD_PILATUS_MX",
                 root=self.data_directory_name,
                 resource_path=f"{self.file_prefix}_{img:04d}.cbf",
                 resource_kwargs={},
             )
 
-            self._resource_document.pop('run_start')
-            self._asset_docs_cache.append(('resource', self._resource_document))
+            self._resource_document.pop("run_start")
+            self._asset_docs_cache.append(("resource", self._resource_document))
 
             datum_document = self._datum_factory(datum_kwargs={})
             print(f"\n\tdatum_document: {datum_document}\n")
@@ -163,7 +166,8 @@ class NYXFlyer(MXFlyer):
         # if not os.path.isfile(self._first_file):
         #     raise RuntimeError(f"File {self._first_file} does not exist")
 
-        # # The pseudocode below is from Tom Caswell explaining the relationship between resource, datum, and events.
+        # # The pseudocode below is from Tom Caswell explaining the relationship
+        # # between resource, datum, and events.
         # #
         # # resource = {
         # #     "resource_id": "RES",
@@ -207,7 +211,6 @@ class NYXFlyer(MXFlyer):
         num_images = kwargs["num_images"]
         exposure_period_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
-        data_directory_name = kwargs["data_directory_name"]
         x_beam = kwargs["x_beam"]
         y_beam = kwargs["y_beam"]
         wavelength = kwargs["wavelength"]
@@ -265,7 +268,7 @@ class NYXFlyer(MXFlyer):
     def configure_vector(self, **kwargs):
         angle_start = kwargs["angle_start"]
         scan_width = kwargs["scan_width"]
-        exposure_ms = kwargs["exposure_period_per_image"] * 1.e3
+        exposure_ms = kwargs["exposure_period_per_image"] * 1.0e3
         num_images = kwargs["num_images"]
         x_mm = (kwargs["x_start_um"] / 1000, kwargs["x_start_um"] / 1000)
         y_mm = (kwargs["y_start_um"] / 1000, kwargs["y_start_um"] / 1000)
