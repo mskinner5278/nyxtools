@@ -264,8 +264,6 @@ class VectorProgram(Device):
         run_status = SubscriptionStatus(self.state, start_callback, run=True)
         logger.debug(f"{ttime.ctime()}: subscribed to {self.active.name}")
 
-        time.sleep(1.0)
-
         self.go.put(1)
         logger.debug(f"{ttime.ctime()}: go.put(1)")
 
