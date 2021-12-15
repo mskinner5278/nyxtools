@@ -88,7 +88,11 @@ class NYXFlyer(MXFlyer):
                 f"{self.detector.name}_image": {
                     "source": f"{self.detector.name}_image",
                     "dtype": "array",
-                    "shape": [-1, -1],  # TODO: read shapes from AD
+                    "shape": [
+                        self.detector.cam.num_images.get(),
+                        self.detector.cam.array_size.array_size_y.get(),
+                        self.detector.cam.array_size.array_size_x.get(),
+                    ],
                     "external": "FILESTORE:",
                 }
             }
