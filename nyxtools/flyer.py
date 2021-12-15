@@ -53,7 +53,7 @@ class NYXFlyer(MXFlyer):
         self.detector.stage()
 
         def zebra_callback(*args, **kwargs):
-            print(f"\n{ttime.ctime()}:\n\targs: {args}\n\tkwargs: {kwargs}\n")
+            logger.debug(f"\n{ttime.ctime()}:\n\targs: {args}\n\tkwargs: {kwargs}\n")
             self.zebra.pc.arm_signal.put(1)
             return NullStatus()
 
@@ -66,13 +66,13 @@ class NYXFlyer(MXFlyer):
         st_vector = self.vector.track_move()
 
         def detector_callback(value, old_value, **kwargs):
-            print(f"\n{ttime.ctime()}: DETECTOR status {old_value} -> {value}\n")
+            logger.debug(f"\n{ttime.ctime()}: DETECTOR status {old_value} -> {value}\n")
             # if old_value == "Acquiring" and value == "Done":
             if old_value == 1 and value == 0:
-                print(f"{ttime.ctime()}: DETECTOR status successfully changed {old_value} -> {value}")
+                logger.debug(f"{ttime.ctime()}: DETECTOR status successfully changed {old_value} -> {value}")
                 return True
             else:
-                print(f"{ttime.ctime()}: DETECTOR status changing {old_value} -> {value}...")
+                logger.debug(f"{ttime.ctime()}: DETECTOR status changing {old_value} -> {value}...")
                 return False
 
         # token = self.detector.cam.acquire.subscribe(detector_callback)
@@ -131,7 +131,7 @@ class NYXFlyer(MXFlyer):
             self._asset_docs_cache.append(("resource", self._resource_document))
 
             datum_document = self._datum_factory(datum_kwargs={})
-            print(f"\n\tdatum_document: {datum_document}\n")
+            logger.debug(f"\n\tdatum_document: {datum_document}\n")
 
             self._datum_ids.append(datum_document["datum_id"])
 

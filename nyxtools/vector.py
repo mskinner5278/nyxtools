@@ -1,10 +1,13 @@
-import time
+import time as ttime
 from typing import Tuple
+import logging
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import FormattedComponent as FCpt
 from ophyd.status import SubscriptionStatus
+
+logger = logging.getLogger(__name__)
 
 
 class VectorSignalWithRBV(EpicsSignal):
@@ -213,7 +216,7 @@ class VectorProgram(Device):
         self.go.put(1)
 
         # There's no way to know it is done, so wait a little, it should be very fast
-        time.sleep(1.0)
+        ttime.sleep(1.0)
 
         # Check for errors
         error = str(self.error.get())
@@ -250,32 +253,32 @@ class VectorProgram(Device):
         #                               timestamp=1638904545.824989, auto_monitor=False,
         #                               string=False)}
         def start_callback(value, old_value, **kwargs):
-            print(f"{time.ctime()}: {old_value} -> {value}")
+            logger.debug(f"{ttime.ctime()}: {old_value} -> {value}")
             if old_value == "Backup" and value == "Acquiring":
-                print(f"{time.ctime()}: Successfully changed {old_value} -> {value}")
+                logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
-                print(f"{time.ctime()}: changing {old_value} -> {value}...")
+                logger.debug(f"{ttime.ctime()}: changing {old_value} -> {value}...")
                 return False
 
         run_status = SubscriptionStatus(self.state, start_callback, run=True)
-        print(f"{time.ctime()}: subscribed to {self.active.name}")
+        logger.debug(f"{ttime.ctime()}: subscribed to {self.active.name}")
 
         time.sleep(1.0)
 
         self.go.put(1)
-        print(f"{time.ctime()}: go.put(1)")
+        logger.debug(f"{ttime.ctime()}: go.put(1)")
 
         return run_status
 
     def track_move(self):
         def finished_callback(value, old_value, **kwargs):
-            print(f"{time.ctime()}: {old_value} -> {value}")
+            (f"{ttime.ctime()}: {old_value} -> {value}")
             if old_value == "Acquiring" and value == "Idle":
-                print(f"{time.ctime()}: Successfully changed {old_value} -> {value}")
+                logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
-                print(f"{time.ctime()}: changing {old_value} -> {value}...")
+                logger.debug(f"{ttime.ctime()}: changing {old_value} -> {value}...")
                 return False
 
         run_status = SubscriptionStatus(self.state, finished_callback, run=True)
