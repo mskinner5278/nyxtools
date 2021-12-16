@@ -1,6 +1,6 @@
+import logging
 import time as ttime
 from typing import Tuple
-import logging
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
