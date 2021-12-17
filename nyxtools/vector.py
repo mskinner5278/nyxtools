@@ -262,21 +262,21 @@ class VectorProgram(Device):
                 return False
 
         run_status = SubscriptionStatus(self.state, start_callback, run=True)
-        logger.debug(f"{ttime.ctime()}: subscribed to {self.active.name}")
+        logger.debug(f"Subscribed to {self.active.name}")
 
         self.go.put(1)
-        logger.debug(f"{ttime.ctime()}: go.put(1)")
+        logger.debug(f"Go.put(1)")
 
         return run_status
 
     def track_move(self):
         def finished_callback(value, old_value, **kwargs):
-            (f"{ttime.ctime()}: {old_value} -> {value}")
+            (f"{old_value} -> {value}")
             if old_value == "Acquiring" and value == "Idle":
-                logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
+                logger.debug(f"Successfully changed {old_value} -> {value}")
                 return True
             else:
-                logger.debug(f"{ttime.ctime()}: changing {old_value} -> {value}...")
+                logger.debug(f"Changing {old_value} -> {value}...")
                 return False
 
         run_status = SubscriptionStatus(self.state, finished_callback, run=True)
