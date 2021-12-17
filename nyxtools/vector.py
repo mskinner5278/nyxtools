@@ -265,13 +265,13 @@ class VectorProgram(Device):
         logger.debug(f"Subscribed to {self.active.name}")
 
         self.go.put(1)
-        logger.debug(f"Go.put(1)")
+        logger.debug("Go.put(1)")
 
         return run_status
 
     def track_move(self):
         def finished_callback(value, old_value, **kwargs):
-            (f"{old_value} -> {value}")
+            logger.debug(f"{old_value} -> {value}")
             if old_value == "Acquiring" and value == "Idle":
                 logger.debug(f"Successfully changed {old_value} -> {value}")
                 return True
