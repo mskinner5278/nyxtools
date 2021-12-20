@@ -1,10 +1,13 @@
-import time
+import logging
+import time as ttime
 from typing import Tuple
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import FormattedComponent as FCpt
 from ophyd.status import SubscriptionStatus
+
+logger = logging.getLogger(__name__)
 
 
 class VectorSignalWithRBV(EpicsSignal):
@@ -144,11 +147,11 @@ class VectorProgram(Device):
     #
 
     # Indicates whether a vector motion is running
-    running = Cpt(EpicsSignalRO, "Sts:Running-Sts")
+    active = Cpt(EpicsSignalRO, "Sts:Running-Sts")
 
     # Current state of the vector:
     #   Idle, Backup, Holding or Acquiring
-    state = Cpt(EpicsSignalRO, "Sts:State-Sts")
+    state = Cpt(EpicsSignalRO, "Sts:State-Sts", string=True)
 
     # Error reported by the vector program:
     #   None, Aborted, Zero Exposure, Too Fast, Zero Shutter, Too Slow
@@ -213,13 +216,14 @@ class VectorProgram(Device):
         self.go.put(1)
 
         # There's no way to know it is done, so wait a little, it should be very fast
-        time.sleep(1.0)
+        ttime.sleep(1.0)
 
         # Check for errors
         error = str(self.error.get())
+        error_message = self.error.get(as_string=True)
 
         if error != "0":
-            raise Exception(f"Failed to run vector. Error: {error}")
+            raise Exception(f"\nFailed to run vector.\nError: {error}\n" f"Error message: {error_message}")
 
         # Estimate total motion time (in ms)
 
@@ -232,28 +236,48 @@ class VectorProgram(Device):
         self.timeout = 5 * estimated_total_time_ms / 1000.0
         self.ready = True
 
-    def start_move(self):
+    def move(self):
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
         self.calc_only.put(False)
 
-        def start_callback(value, old_value):
-            if old_value == 0 and value == 1:
+        # Note: 'kwargs' are needed here as extra information is passed to the callback, such as:
+        # kwargs: {'timestamp': 1638904545.824989,
+        #          'status': <AlarmStatus.NO_ALARM: 0>,
+        #          'severity': <AlarmSeverity.NO_ALARM: 0>,
+        #          'enum_strs': ('No', 'Yes'),
+        #          'sub_type': 'value',
+        #          'obj': EpicsSignalRO(read_pv='XF:19IDC-ES{Gon:1-Vec}Sts:Running-Sts',
+        #                               name='vector_active', parent='vector', value=0,
+        #                               timestamp=1638904545.824989, auto_monitor=False,
+        #                               string=False)}
+        def start_callback(value, old_value, **kwargs):
+            logger.debug(f"{ttime.ctime()}: {old_value} -> {value}")
+            if old_value == "Backup" and value == "Acquiring":
+                logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
+                logger.debug(f"{ttime.ctime()}: changing {old_value} -> {value}...")
                 return False
 
-        run_status = SubscriptionStatus(self.running, start_callback, run=False)
+        run_status = SubscriptionStatus(self.state, start_callback, run=True)
+        logger.debug(f"Subscribed to {self.active.name}")
+
         self.go.put(1)
+        logger.debug("Go.put(1)")
+
         return run_status
 
     def track_move(self):
-        def finished_callback(value, old_value):
-            if old_value == 1 and value == 0:
+        def finished_callback(value, old_value, **kwargs):
+            logger.debug(f"{old_value} -> {value}")
+            if old_value == "Acquiring" and value == "Idle":
+                logger.debug(f"Successfully changed {old_value} -> {value}")
                 return True
             else:
+                logger.debug(f"Changing {old_value} -> {value}...")
                 return False
 
-        run_status = SubscriptionStatus(self.running, finished_callback, run=False)
+        run_status = SubscriptionStatus(self.state, finished_callback, run=True)
         return run_status
