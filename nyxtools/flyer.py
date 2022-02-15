@@ -122,12 +122,14 @@ class NYXFlyer(MXFlyer):
 
         start_num = self.file_number_start
         end_num = self.file_number_start + self.num_images
+        # ensure that the number format of resource_path below matches LSDC
+        # daq_utils.create_filename and AreaDetector field FileTemplate
         for img in range(start_num, end_num):
             self._resource_document, self._datum_factory, _ = compose_resource(
                 start={"uid": "needed for compose_resource() but will be discarded"},
                 spec="AD_PILATUS_MX",
                 root=self.data_directory_name,
-                resource_path=f"{self.file_prefix}_{img:05d}.cbf",  # number format needs to match LSDC daq_utils.create_filename
+                resource_path=f"{self.file_prefix}_{img:05d}.cbf",
                 resource_kwargs={},
             )
 
