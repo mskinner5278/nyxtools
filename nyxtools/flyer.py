@@ -127,7 +127,7 @@ class NYXFlyer(MXFlyer):
                 start={"uid": "needed for compose_resource() but will be discarded"},
                 spec="AD_PILATUS_MX",
                 root=self.data_directory_name,
-                resource_path=f"{self.file_prefix}_{img:04d}.cbf",
+                resource_path=f"{self.file_prefix}_{img:05d}.cbf",  # number format needs to match LSDC daq_utils.create_filename
                 resource_kwargs={},
             )
 
