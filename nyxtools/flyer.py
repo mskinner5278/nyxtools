@@ -221,6 +221,7 @@ class NYXFlyer(MXFlyer):
         y_beam = kwargs["y_beam"]
         wavelength = kwargs["wavelength"]
         det_distance_m = kwargs["det_distance_m"]
+        transmission = kwargs["transmission"]
 
         # These components do not exist for Pilatus (copied from Eiger),
         # so commenting them out now:
@@ -245,6 +246,7 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.start_angle.put(start, wait=True)
         self.detector.cam.wavelength.put(wavelength, wait=True)
         self.detector.cam.det_dist.put(det_distance_m * 1000, wait=True)
+        self.detector.cam.filter_transm(transmission, wait=True)
 
         # Setting the file start number, etc.
         self.detector.file.file_path.put(self.data_directory_name)
