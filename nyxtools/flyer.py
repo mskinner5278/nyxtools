@@ -246,7 +246,7 @@ class NYXFlyer(MXFlyer):
         self.detector.cam.start_angle.put(start, wait=True)
         self.detector.cam.wavelength.put(wavelength, wait=True)
         self.detector.cam.det_dist.put(det_distance_m * 1000, wait=True)
-        self.detector.cam.filter_transm(transmission, wait=True)
+        self.detector.cam.filter_transm.put(transmission, wait=True)
 
         # Setting the file start number, etc.
         self.detector.file.file_path.put(self.data_directory_name)
