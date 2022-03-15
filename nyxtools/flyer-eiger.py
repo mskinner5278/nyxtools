@@ -1,8 +1,5 @@
-# import getpass
-# import grp
 import logging
 
-# import os
 import time as ttime
 from collections import deque
 
@@ -16,37 +13,16 @@ logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
 
 
-class NYXFlyer(MXFlyer):
+class NYXEigerFlyer(MXFlyer):
     def __init__(self, vector, zebra, detector=None) -> None:
+        super().__init__(vector, zebra, detector)
         self.name = "NYXFlyer"
-        self.vector = vector
-        self.zebra = zebra
-        self.detector = detector
-
         self.data_directory_name = None
-        self.file_prefix = None
-        self.num_images = None
-        self.file_number_start = None
-
-        self._asset_docs_cache = deque()
         self._resource_document = None
         self._datum_factory = None
 
-        # self._resource_uids = []
-        # self._datum_counter = None
-        # TODO: rework to use datum ids dictionary.
-        # self._datum_ids = DEFAULT_DATUM_DICT
-        self._datum_ids = []
-        self._first_file = None
-
-        self._collection_dictionary = None
-
     def update_parameters(self, **kwargs):
         self.data_directory_name = kwargs.get("data_directory_name", "/nyx-data/test")
-        self.file_prefix = kwargs.get("file_prefix", "test")
-        self.num_images = kwargs.get("num_images", 1)
-        self.file_number_start = kwargs.get("file_number_start", 1)
-
         super().update_parameters(**kwargs)
 
     def kickoff(self):
@@ -82,48 +58,10 @@ class NYXFlyer(MXFlyer):
 
         return st_vector & st_detector
 
-    def describe_collect(self):
-        return_dict = {
-            "primary": {
-                f"{self.detector.name}_image": {
-                    "source": f"{self.detector.name}_image",
-                    "dtype": "array",
-                    "shape": [
-                        self.detector.cam.num_images.get(),
-                        self.detector.cam.array_size.array_size_y.get(),
-                        self.detector.cam.array_size.array_size_x.get(),
-                    ],
-                    "external": "FILESTORE:",
-                }
-            }
-        }
-        return return_dict
-
-    def collect(self):
-        self.unstage()
-
-        for datum_id in self._datum_ids:
-            now = ttime.time()
-            data = {
-                # f"{self.detector.name}_image": self._datum_ids["data"],
-                # "omega": self._datum_ids["omega"],
-                f"{self.detector.name}_image": datum_id
-            }
-            yield {
-                "data": data,
-                "timestamps": {key: now for key in data},
-                "time": now,
-                "filled": {key: False for key in data},
-            }
-
     def collect_asset_docs(self):
 
-        # asset_docs_cache = []
-
-        start_num = self.file_number_start
-        end_num = self.file_number_start + self.num_images
-        # ensure that the number format of resource_path below matches LSDC
-        # daq_utils.create_filename and AreaDetector field FileTemplate
+        asset_docs_cache = super().collect_asset_docs()
+        
         for img in range(start_num, end_num):
             self._resource_document, self._datum_factory, _ = compose_resource(
                 start={"uid": "needed for compose_resource() but will be discarded"},
@@ -207,71 +145,62 @@ class NYXFlyer(MXFlyer):
         #     asset_docs_cache.append(("datum", datum))
         # return tuple(asset_docs_cache)
 
-    def _extract_metadata(self, field="omega"):
-        with fabio.open(self._first_file, "r") as cbf:
-            return cbf.pilatus_headers("omega")
-
     def detector_arm(self, **kwargs):
-        start = kwargs["angle_start"]
-        width = kwargs["img_width"]
-        num_images = kwargs["num_images"]
         exposure_period_per_image = kwargs["exposure_period_per_image"]
-        file_prefix = kwargs["file_prefix"]
-        x_beam = kwargs["x_beam"]
-        y_beam = kwargs["y_beam"]
-        wavelength = kwargs["wavelength"]
-        det_distance_m = kwargs["det_distance_m"]
         transmission = kwargs["transmission"]
 
-        # These components do not exist for Pilatus (copied from Eiger),
-        # so commenting them out now:
-        # self.detector.cam.save_files.put(1, wait=True)
-        # self.detector.cam.file_owner.put(getpass.getuser(), wait=True)
-        # self.detector.cam.file_owner_grp.put(grp.getgrgid(os.getgid())[0], wait=True)
-        # self.detector.cam.file_perms.put(420, wait=True)
+        super().detector_arm(**kwargs)
 
-        file_prefix_minus_directory = str(file_prefix)
-        file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
+        #self.detector.cam.save_files.put(1, wait=True)
+        #self.detector.cam.file_owner.put(getpass.getuser(), wait=True)
+        #self.detector.cam.file_owner_grp.put(grp.getgrgid(os.getgid())[0], wait=True)
+        #self.detector.cam.file_perms.put(420, wait=True)
 
-        self.detector.cam.acquire_time.put(exposure_period_per_image - 0.0024, wait=True)
-        self.detector.cam.acquire_period.put(exposure_period_per_image, wait=True)
-        self.detector.cam.num_images.put(num_images, wait=True)
-        # self.detector.cam.file_path.put(data_directory_name, wait=True)
-        # self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
+        #file_prefix_minus_directory = str(file_prefix)
+        #file_prefix_minus_directory = file_prefix_minus_directory.split("/")[-1]
+
+        #self.detector.cam.acquire_time.put(exposure_period_per_image - 0.0024, wait=True)
+        #self.detector.cam.acquire_period.put(exposure_period_per_image, wait=True)
+        #self.detector.cam.num_images.put(num_images, wait=True)
+        #self.detector.cam.file_path.put(data_directory_name, wait=True)
+        #self.detector.cam.file_name.put(file_prefix_minus_directory, wait=True)
 
         # originally from detector_set_fileheader
-        self.detector.cam.beam_x.put(x_beam, wait=True)
-        self.detector.cam.beam_y.put(y_beam, wait=True)
-        self.detector.cam.angle_incr.put(width, wait=True)
-        self.detector.cam.start_angle.put(start, wait=True)
-        self.detector.cam.wavelength.put(wavelength, wait=True)
-        self.detector.cam.det_dist.put(det_distance_m * 1000, wait=True)
-        self.detector.cam.filter_transm.put(transmission, wait=True)
+        #self.detector.cam.beam_x.put(x_beam, wait=True)
+        #self.detector.cam.beam_y.put(y_beam, wait=True)
+        #self.detector.cam.angle_incr.put(width, wait=True)
+        #self.detector.cam.start_angle.put(start, wait=True)
+        #self.detector.cam.wavelength.put(wavelength, wait=True)
+        #self.detector.cam.det_dist.put(det_distance_m * 1000, wait=True)
+        #self.detector.cam.filter_transm.put(transmission, wait=True)
 
         # Setting the file start number, etc.
-        self.detector.file.file_path.put(self.data_directory_name)
-        self.detector.file.file_name.put(self.file_prefix)
-        self.detector.file.file_number.put(self.file_number_start)
+        #self.detector.file.file_path.put(self.data_directory_name)
+        #self.detector.file.file_name.put(self.file_prefix)
+        #self.detector.file.file_number.put(self.file_number_start)
 
-        start_arm = ttime.monotonic()
+        #start_arm = ttime.monotonic()
 
-        def armed_callback(value, old_value, **kwargs):
-            if old_value == 0 and value == 1:
-                return True
-            return False
+        #def armed_callback(value, old_value, **kwargs):
+        #    if old_value == 0 and value == 1:
+        #        return True
+        #    return False
 
-        status = SubscriptionStatus(self.detector.cam.armed, armed_callback, run=False)
+        #status = SubscriptionStatus(self.detector.cam.armed, armed_callback, run=False)
 
-        self.detector.cam.acquire.set(1)
+        #self.detector.cam.acquire.set(1)
 
-        status.wait()
-        logger.info(f"arm time = {ttime.monotonic() - start_arm}")
+        #status.wait()
+        #logger.info(f"arm time = {ttime.monotonic() - start_arm}")
 
         # return status
 
     def configure_detector(self, **kwargs):
         # TODO: clean up in the base class.
         pass
+
+    def configure_zebra(self, *args, **kwargs): # TODO: Ask how NYX zebra differs from this system
+        return super().configure_zebra(*args, **kwargs)
 
     def configure_vector(self, **kwargs):
         angle_start = kwargs["angle_start"]
