@@ -13,8 +13,6 @@ class NYXEiger2Flyer(MXFlyer):
     def __init__(self, vector, zebra, detector=None) -> None:
         self.super().__init__(vector, zebra, detector)
         self.name = "NYXEiger2Flyer"
-        self.data_directory_name = None
-        self._resource_document = None
 
     def update_parameters(self, **kwargs):
         self.data_directory_name = kwargs.get("data_directory_name", "/nyx-data/test")
