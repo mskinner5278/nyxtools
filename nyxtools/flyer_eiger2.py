@@ -14,10 +14,6 @@ class NYXEiger2Flyer(MXFlyer):
         self.super().__init__(vector, zebra, detector)
         self.name = "NYXEiger2Flyer"
 
-    def update_parameters(self, **kwargs):
-        self.data_directory_name = kwargs.get("data_directory_name", "/nyx-data/test")
-        super().update_parameters(**kwargs)
-
     def kickoff(self):
         self.detector.stage()
 
