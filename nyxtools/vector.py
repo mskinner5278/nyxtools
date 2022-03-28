@@ -254,7 +254,7 @@ class VectorProgram(Device):
         #                               string=False)}
         def start_callback(value, old_value, **kwargs):
             logger.debug(f"{ttime.ctime()}: {old_value} -> {value}")
-            if old_value == "Backup" and value == "Acquiring":
+            if (old_value == "Backup" and value == "Acquiring") or (old_value == "Idle" and value == "Acquiring"):
                 logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
                 return True
             else:
