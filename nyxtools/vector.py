@@ -10,6 +10,7 @@ from ophyd.status import SubscriptionStatus
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.DEBUG)
 
+
 class VectorSignalWithRBV(EpicsSignal):
     """
     An EPICS signal that uses 'pvname-SP' for the setpoint and
@@ -272,6 +273,7 @@ class VectorProgram(Device):
 
     def track_move(self):
         logger.debug("track_move: start")
+
         def finished_callback(value, old_value, **kwargs):
             logger.debug(f"track_move finished_callback: {old_value} -> {value}")
             if old_value == "Acquiring" and value == "Idle":

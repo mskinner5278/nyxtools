@@ -9,9 +9,7 @@ from collections import deque
 import fabio
 from event_model import compose_resource
 from mxtools.flyer import MXFlyer
-from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
-from ophyd.utils import set_and_wait
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
