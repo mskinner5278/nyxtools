@@ -8,7 +8,7 @@ from ophyd import FormattedComponent as FCpt
 from ophyd.status import SubscriptionStatus
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger().setLevel(logging.DEBUG)
 
 class VectorSignalWithRBV(EpicsSignal):
     """
@@ -237,6 +237,7 @@ class VectorProgram(Device):
         self.ready = True
 
     def move(self):
+        logger.debug("move: start")
         if not self.ready:
             raise Exception("Must execute prepare_move command before move is allowed.")
         # Start actual motion
@@ -253,12 +254,12 @@ class VectorProgram(Device):
         #                               timestamp=1638904545.824989, auto_monitor=False,
         #                               string=False)}
         def start_callback(value, old_value, **kwargs):
-            logger.debug(f"{ttime.ctime()}: {old_value} -> {value}")
-            if old_value == "Backup" and value == "Acquiring":
-                logger.debug(f"{ttime.ctime()}: Successfully changed {old_value} -> {value}")
+            logger.debug(f"move start_callback: {old_value} -> {value}")
+            if (old_value == "Backup" and value == "Acquiring") or (old_value == "Idle" and value == "Acquiring"):
+                logger.debug(f"move start_callback: Successfully changed {old_value} -> {value}")
                 return True
             else:
-                logger.debug(f"{ttime.ctime()}: changing {old_value} -> {value}...")
+                logger.debug(f"move start_callback: changing {old_value} -> {value}...")
                 return False
 
         run_status = SubscriptionStatus(self.state, start_callback, run=True)
@@ -270,14 +271,16 @@ class VectorProgram(Device):
         return run_status
 
     def track_move(self):
+        logger.debug("track_move: start")
         def finished_callback(value, old_value, **kwargs):
-            logger.debug(f"{old_value} -> {value}")
+            logger.debug(f"track_move finished_callback: {old_value} -> {value}")
             if old_value == "Acquiring" and value == "Idle":
-                logger.debug(f"Successfully changed {old_value} -> {value}")
+                logger.debug(f"track_move finished_callback: Successfully changed {old_value} -> {value}")
                 return True
             else:
-                logger.debug(f"Changing {old_value} -> {value}...")
+                logger.debug(f"track_move finished_callback: Changing {old_value} -> {value}...")
                 return False
 
         run_status = SubscriptionStatus(self.state, finished_callback, run=True)
+        logger.debug(f"Subscribed to {self.state.name}")
         return run_status

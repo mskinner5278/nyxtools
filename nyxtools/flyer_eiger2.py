@@ -11,7 +11,7 @@ DEFAULT_DATUM_DICT = {"data": None, "omega": None}
 
 class NYXEiger2Flyer(MXFlyer):
     def __init__(self, vector, zebra, detector=None) -> None:
-        self.super().__init__(vector, zebra, detector)
+        super().__init__(vector, zebra, detector)
         self.name = "NYXEiger2Flyer"
 
     def kickoff(self):
