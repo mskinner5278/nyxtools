@@ -46,7 +46,7 @@ class NYXEiger2Flyer(MXFlyer):
 
     def detector_arm(self, **kwargs):
         kwargs["det_distance_m"] /= 1000
-        self.super().detector_arm(**kwargs)
+        super().detector_arm(**kwargs)
 
     def configure_vector(self, **kwargs):
         angle_start = kwargs["angle_start"]
