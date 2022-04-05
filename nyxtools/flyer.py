@@ -9,9 +9,7 @@ from collections import deque
 import fabio
 from event_model import compose_resource
 from mxtools.flyer import MXFlyer
-from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
-from ophyd.utils import set_and_wait
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATUM_DICT = {"data": None, "omega": None}
@@ -52,15 +50,18 @@ class NYXFlyer(MXFlyer):
         self.zebra.pc.arm_signal.put(1)
 
     def kickoff(self):
+        logger.debug(f"kickoff: flyer {self.name}")
+        ttime.sleep(0.5)
         self.detector.stage()
         st = self.vector.move()
         return st
 
     def complete(self):
+        logger.debug("complete: vector tracking")
         st_vector = self.vector.track_move()
 
         def detector_callback(value, old_value, **kwargs):
-            logger.debug(f"DETECTOR status {old_value} -> {value}")
+            logger.debug(f"DETECTOR status {old_value} ({type(old_value)}) -> {value} ({type(value)})")
             # if old_value == "Acquiring" and value == "Done":
             if old_value == 1 and value == 0:
                 logger.debug(f"DETECTOR status successfully changed {old_value} -> {value}")
@@ -72,11 +73,13 @@ class NYXFlyer(MXFlyer):
         # token = self.detector.cam.acquire.subscribe(detector_callback)
         # st_detector = self.detector.cam.acquire._status
 
+        logger.debug("complete: detector status")
         st_detector = SubscriptionStatus(self.detector.cam.acquire, detector_callback, run=True)
 
         return st_vector & st_detector
 
     def describe_collect(self):
+        logger.debug("describe_collect: start")
         return_dict = {
             "primary": {
                 f"{self.detector.name}_image": {
@@ -94,6 +97,8 @@ class NYXFlyer(MXFlyer):
         return return_dict
 
     def collect(self):
+        logger.debug("collect: start")
+
         self.unstage()
 
         for datum_id in self._datum_ids:
@@ -109,9 +114,10 @@ class NYXFlyer(MXFlyer):
                 "time": now,
                 "filled": {key: False for key in data},
             }
+        logger.debug("collect: done")
 
     def collect_asset_docs(self):
-
+        logger.debug("collect_asset_docs: start")
         # asset_docs_cache = []
 
         start_num = self.file_number_start
