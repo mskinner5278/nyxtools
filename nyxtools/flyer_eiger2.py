@@ -16,16 +16,13 @@ class NYXEiger2Flyer(MXFlyer):
 
     def kickoff(self):
         self.detector.stage()
-
-        def zebra_callback(*args, **kwargs):
-            logger.debug(f"args: {args},  kwargs: {kwargs}\n")
-            self.zebra.pc.arm_signal.put(1)
-            return NullStatus()
-
         st = self.vector.move()
-        st.add_callback(zebra_callback)
-
         return st
+
+    def update_parameters(self, **kwargs):
+        super().update_parameters(**kwargs)
+        self.zebra.pc.arm_signal.put(1)
+        ttime.sleep(1)
 
     def complete(self):
         st_vector = self.vector.track_move()
@@ -53,7 +50,7 @@ class NYXEiger2Flyer(MXFlyer):
         y_mm = (kwargs["y_start_um"] / 1000, kwargs["y_start_um"] / 1000)
         z_mm = (kwargs["z_start_um"] / 1000, kwargs["z_start_um"] / 1000)
         o = (angle_start, angle_start + scan_width)
-        buffer_time_ms = 50
+        buffer_time_ms = 0
         shutter_lag_time_ms = 2
         shutter_time_ms = 2
         self.vector.prepare_move(
