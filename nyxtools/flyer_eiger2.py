@@ -2,7 +2,6 @@ import logging
 import time as ttime
 
 from mxtools.flyer import MXFlyer
-from ophyd.sim import NullStatus
 from ophyd.status import SubscriptionStatus
 
 logger = logging.getLogger(__name__)
