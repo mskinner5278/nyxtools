@@ -49,7 +49,7 @@ class NYXEiger2Flyer(MXFlyer):
         scan_width = kwargs["scan_width"]
         exposure_ms = kwargs["exposure_period_per_image"] * 1.0e3
         num_images = kwargs["num_images"]
-        if (kwargs["x_end_um"] != null) && (kwargs["y_end_um"] != null) && kwargs["z_end_um"] != null):
+        if kwargs["protocol"] == "vector":
           x_mm = (kwargs["x_start_um"] / 1000, kwargs["x_end_um"] /1000)
           y_mm = (kwargs["y_start_um"] / 1000, kwargs["y_end_um"] / 1000)
           z_mm = (kwargs["z_start_um"] / 1000, kwargs["z_end_um"] / 1000)
