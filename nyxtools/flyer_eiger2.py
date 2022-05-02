@@ -41,10 +41,13 @@ class NYXEiger2Flyer(MXFlyer):
         return st_vector & st_detector
 
     def detector_arm(self, **kwargs):
+        logger.debug("flyer detector arm")
         kwargs["det_distance_m"] /= 1000
-        self.super().detector_arm(**kwargs)
+        super().detector_arm(**kwargs)
+        logger.debug("flyer detector arm done")
 
     def configure_vector(self, **kwargs):
+        logger.debug("configuring vector")
         angle_start = kwargs["angle_start"]
         scan_width = kwargs["scan_width"]
         exposure_ms = kwargs["exposure_period_per_image"] * 1.0e3
@@ -67,6 +70,7 @@ class NYXEiger2Flyer(MXFlyer):
             shutter_lag_time_ms,
             shutter_time_ms,
         )
+        logger.debug("configure done")
 
     def zebra_daq_prep(self):
         self.zebra.reset.put(1)
