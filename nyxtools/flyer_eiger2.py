@@ -42,7 +42,6 @@ class NYXEiger2Flyer(MXFlyer):
 
     def detector_arm(self, **kwargs):
         logger.debug("flyer detector arm")
-        kwargs["det_distance_m"] /= 1000
         super().detector_arm(**kwargs)
         logger.debug("flyer detector arm done")
 
