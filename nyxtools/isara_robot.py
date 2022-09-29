@@ -36,12 +36,13 @@ class IsaraRobotDevice(Device):
   # write 1 to start move
   home_traj = Cpt(EpicsSignal,'Move:Home-Cmd', put_complete=True)
   recover_traj = Cpt(EpicsSignal,'Move:Rcvr-Cmd', put_complete=True)
-  get_traj = Cpt(EpicsSignal,'Move:GetHt-Cmd', put_complete=True)
-  put_traj = Cpt(EpicsSignal,'Move:PutHt-Cmd', put_complete=True)
-  getput_traj = Cpt(EpicsSignal,'Move:GetPutHt-Cmd', put_complete=True)
-  back_traj = Cpt(EpicsSignal,'Move:BckHt-Cmd', put_complete=True)
+  get_traj = Cpt(EpicsSignal,'Move:Get-Cmd', put_complete=True)
+  put_traj = Cpt(EpicsSignal,'Move:Put-Cmd', put_complete=True)
+  getput_traj = Cpt(EpicsSignal,'Move:GetPut-Cmd', put_complete=True)
+  back_traj = Cpt(EpicsSignal,'Move:Bck-Cmd', put_complete=True)
   dry_traj = Cpt(EpicsSignal, 'Move:Dry-Cmd', put_complete=True)
   soak_traj = Cpt(EpicsSignal, 'Move:Sk-Cmd', put_complete=True)
+  pick_traj = Cpt(EpicsSignal, 'Move:Pck-Cmd', put_complete=True)
 
   ## Trajectory Arguments
   # 0 = "ToolChanger"
@@ -54,6 +55,7 @@ class IsaraRobotDevice(Device):
   # 7 = "Spare"
   # 8 = "LaserTool"
   tool_selected = Cpt(EpicsSignal,'Tl-Sel')
+  current_tool = Cpt(EpicsSignal, 'Tl-I')
 
   # limits 0-29 
   plate_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
@@ -122,6 +124,8 @@ class IsaraRobotDevice(Device):
   samp_b_read = Cpt(EpicsSignalRO, 'Samp:B-I')
   samp_dif_read = Cpt(EpicsSignalRO, 'Samp:Dif-I')
 
+
+
   # deprecated possibly by doublegripper functions
 
   def selectSample(sample_no):
@@ -187,7 +191,7 @@ class IsaraRobotDevice(Device):
   def homeRobot():
     yield from bps.abs_set(self.home_traj, 1, wait=True)
 
-  def soakGripper():
+  def soakGripper(self):
     yield from bps.abs_set(self.soak_traj, 1, wait=True)
 
 #  def set_sample(self, puck: str, sample: str):
