@@ -1,6 +1,8 @@
-from bluesky import plan_stubs as bps
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
+
+#TIMEOUT in seconds, should be declared elsewhere
+ISARA_TIMEOUT = 100
 
 class IsaraRobotDevice(Device):
   ### Commands
@@ -55,7 +57,6 @@ class IsaraRobotDevice(Device):
   # 7 = "Spare"
   # 8 = "LaserTool"
   tool_selected = Cpt(EpicsSignal,'Tl-Sel')
-  current_tool = Cpt(EpicsSignal, 'Tl-I')
 
   # limits 0-29 
   plate_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
@@ -70,6 +71,7 @@ class IsaraRobotDevice(Device):
   dm_selected = Cpt(EpicsSignal, 'DM-Sel', put_complete=True)
 
   ### Statuses
+
   # interface from denso, try to maintain types
   #int
   #status
@@ -91,12 +93,59 @@ class IsaraRobotDevice(Device):
   # 1 = "Drying"
   drying_sts = Cpt(EpicsSignalRO, 'GripDry-Sts')
   # new 
+  # 0 = "Hold off"
+  # 1 = "Permit"
   drying_permitted_sts = Cpt(EpicsSignalRO,'DryPmt-I')
 
   # spindle occupied bool
   spindle_occupied_sts = Cpt(EpicsSignalRO, 'Samp:Dif-Sts')
 
   # New statuses for ISARA
+
+  # Last Message
+  last_message = Cpt(EpicsSignalRO, 'LastMsg-I')
+ 
+  # Fault Status
+  # 0 = "Ok"
+  # 1 = "Fault"
+  fault_sts = Cpt(EpicsSignalRO, 'Flt-Sts')
+
+  # Alarm Status
+  # TODO: What does this return?
+  alarm_sts = Cpt(EpicsSignalRO, 'Alarm-I')
+
+  # Current Position
+  position_sts = Cpt(EpicsSignalRO, 'Pos:Name-I')
+
+  # Moving Status
+  # 0 = "Stopped"
+  # 1 = "Moving"
+  moving_sts = Cpt(EpicsSignalRO, 'Seq:Run-Sts')
+
+  # Paused Status
+  # 0 = "Normal"
+  # 1 = "Paused"
+  paused_sts = Cpt(EpicsSignalRO, 'Seq:Paus-Sts')
+
+  # Speed Status
+  speed_sts = Cpt(EpicsSignalRO, 'Speed-I')
+
+  # Current Tool
+  # 0 = "ToolChanger"
+  # 1 = "Cryotong"
+  # 2 = "SingleGripper"
+  # 3 = "DoubleGripper"
+  # 4 = "MiniSpineGripper"
+  # 5 = "RotatingGripper"
+  # 6 = "PlateGripper"
+  # 7 = "Spare"
+  # 8 = "LaserTool"
+  current_tool = Cpt(EpicsSignal, 'Tl-I')
+
+  # Power status
+  # 0 = "Off"
+  # 1 = "On"
+  power_sts = Cpt(EpicsSignalRO, 'Pwr-Sts')
 
   # Occupied statuses
   # 0 = "Empty"
@@ -124,103 +173,169 @@ class IsaraRobotDevice(Device):
   samp_b_read = Cpt(EpicsSignalRO, 'Samp:B-I')
   samp_dif_read = Cpt(EpicsSignalRO, 'Samp:Dif-I')
 
-
+  def set_and_check(signal, value)
+    signal_status = signal.put(value)
+    signal_status.wait(ISARA_TIMEOUT)
+    return signal_status.success
 
   # deprecated possibly by doublegripper functions
+  def selectSample(self, sample_no):
+    return set_and_check(self.sample_selected, sample_no)
 
-  def selectSample(sample_no):
-    yield from bps.abs_set(self.sample_selected, sample_no, wait=True)
+  def selectPlate(self, plate_no):
+    return set_and_check(self.plate_selected, plate_no)
 
-  def selectPlate(plate_no):
-    yield from bps.abs_set(self.plate_selected, plate_no, wait=True)
-
-  def openGripper():
+  def openGripper(self):
     pass   
 
-  def closeGripper():
+  def closeGripper(self):
     pass
 
-  def openGripperA():
-    self.gripper_a_open.put(1)
+  def openGripperA(self):
+    return set_and_check(self.gripper_a_open, 1)
 
-  def openGripperB():
-    self.gripper_b_open.put(1)
+  def openGripperB(self):
+    return set_and_check(self.gripper_a_open, 1)
 
-  def closeGripperA():
-    self.gripper_a_close.put(1)
+  def closeGripperA(self):
+    return set_and_check(self.gripper_a_close, 1)
 
-  def closeGripperB():
-    self.gripper_b_close.put(1)
+  def closeGripperB(self):
+    return set_and_check(self.gripper_b_close, 1)
 
-  def warmupGripper():
+  def warmupGripper(self):
     pass
 
-  def DewarHeaterOff():
-    yield from bps.abs_set(self.heater_off.put, 1, wait=True)
+  def DewarHeaterOff(self):
+    return set_and_check(self.heater_off, 1)
 
-  def DewarHeaterOn():
-    yield from bps.abs_set(self.heater_on, 1, wait=True)
+  def DewarHeaterOn(self):
+    return set_and_check(self.heater_on, 1)
 
-  def parkGripper():
+  def parkGripper(self):
     pass
 
-  def testRobot():
+  def testRobot(self):
     pass
 
-  def openPort(PortNo):
+  def openPort(self, PortNo):
     pass
 
-  def closePorts():
+  def closePorts(self):
     pass
 
-  def dryGripper():
-    yield from bps.abs_set(self.dry_traj.put, 1, wait=True)
+  def dryGripper(self):
+    self.dry_traj.set(1)
 
-  def recoverRobot():
-    yield from bps.abs_set(self.recover_traj, 1, wait=True)
+  def movement_ready(self):
+    if not self.power_sts.get():
+      return [False, "Power is off"]
+    if not self.moving_sts.get():
+      return [False, "Moving"]
+    if not self.paused_sts.get():
+      return [False, "Paused"]
+    return [True, "mount ready"]
+
+  # Recover Trajectory
+  #  required arguments
+  #  --current_tool_number
+  def recoverRobot(self):
+    if self.current_tool.get() != self.tool_selected.get():
+      raise RuntimeError(f"Bad tool argument")
+    traj_status = self.recover_traj.set(1)
+    traj_status.wait(ISARA_TIMEOUT)
+    return traj_status.success
 
   def finish():
     pass
 
-  def mountRobotSample():
-    yield from bps.abs_set(self.put_traj, 1, wait=True)
+  # Mount (Put Trajectory)
+  #  required arguments:
+  #  --current_tool_number
+  #  --sample_num
+  #  --puck_num
+  #  optional arguments:
+  #  --next_sample_num
+  #  --next_puck_num
+  #def mountRobotSample(self):
+  #  if self.current_tool.get() != self.tool_selected.get():
+  #    raise RuntimeError(f"Bad tool argument")
+  #  return self.put_traj.set(1).wait(ISARA_TIMEOUT)
 
-  def unmountRobotSample():
-    yield from bps.abs_set(self.back_traj, 1, wait=True)
+  # Recover Trajectory
+  #  required arguments
+  #  --current_tool_number
+  #def unmountRobotSample(self):
+  #  if self.current_tool.get() != self.tool_selected.get():
+  #    raise RuntimeError(f"Bad tool argument")
+  #  return self.back_traj.set(1).wait(ISARA_TIMEOUT)
 
-  def homeRobot():
-    yield from bps.abs_set(self.home_traj, 1, wait=True)
+  # Home Trajectory
+  #  required arguments
+  #  --current_tool_number
+  def homeRobot(self):
+    if self.current_tool.get() != self.tool_selected.get():
+      raise RuntimeError(f"Bad tool argument")
+    traj_status = self.home_traj.set(1)
+    traj_status.wait(ISARA_TIMEOUT)
+    return traj_status.success
 
+  # Soak Trajectory
+  #  required arguments
+  #  --current_tool_number
   def soakGripper(self):
-    yield from bps.abs_set(self.soak_traj, 1, wait=True)
+    if self.current_tool.get() != self.tool_selected.get():
+      raise RuntimeError(f"Bad tool argument")
+    traj_status = self.soak_traj.set(1)
+    traj_status.wait(ISARA_TIMEOUT)
+    return traj_status.success
 
-#  def set_sample(self, puck: str, sample: str):
-#    sample_str = f"{sample}{puck}"
-#    yield from bps.abs_set(self.puck_num_sel, puck, wait=True)
-#    yield from bps.abs_set(self.sample_num_sel, sample, wait=True)
-#
-#    if self.sample_sts.get(use_monitor=False) != sample_str:
-#      raise RuntimeError(f"Failed to set sample '{sample_str}'")
-#
-#    return sample_str
+  def set_sample(self, puck: str, sample: str):
+    sample_str = f"{sample}{puck}"
+
+    #TODO: switch status.wait to callbacks
+    puck_sel_status = self.puck_num_sel.set(puck)
+    sample_sel_status = self.sample_num_sel.set(sample)
+    puck_sel_status.wait(ISARA_TIMEOUT)
+    sample_sel_status.wait(ISARA_TIMEOUT)
+
+    if not sample_sel_status.success:
+      raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
+    if not puck_sel_status.success:
+      raise RuntimeError(f"Failed to set puck_select: '{sample_str}'")
+
+    return sample_str
 
   def mount(self, puck: str, sample: str):
-    if self.busy_sts.get() or not self.mount_ready_sts.get():
-      raise RuntimeError("Can't mount: busy or occupied")
+    # check robot is ready
+    ready, desc = self.movement_ready()
+    if not ready:
+      raise RuntimeError(f"Can't mount: {desc}")
+    # check trajectory arguments
+    if self.current_tool.get() != self.tool_selected.get():
+      raise RuntimeError(f"Bad tool argument")
+    sample_str = self.set_sample(self, puck: str, sample: str)
+    # check that position == soak
+    mount_status = self.mount_cmd.set(1)
+    mount_status.wait(ISARA_TIMEOUT)
 
-    sample_str = yield from self.set_sample(puck, sample)
-
-    yield from bps.abs_set(self.mount_cmd, 1, wait=True)
-
-    if not self.spindle_occupied_sts.get(use_monitor=False):
+    if not mount_status.success:
       raise RuntimeError(f"Can't mount {sample_str}: failed to mount")
 
   def dismount(self, puck: str, sample: str):
-    if self.busy_sts.get() or not self.spindle_occupied_sts.get():
-      raise RuntimeError(f"Can't dismount {sample_str}: busy or empty")
+    # check robot is ready
+    ready, desc = self.movement_ready()
+    if not ready:
+      raise RuntimeError(f"Can't dismount {sample_str}: busy")
+    # check spindle is actually occupied
+    if not self.spindle_occupied_sts.get():
+      raise RuntimeError(f"Can't dismount {sample_str}: spindle not occupied")
+    # check trajectory arguments
+    if self.current_tool.get() != self.tool_selected.get():
+      raise RuntimeError(f"Bad tool argument")
 
-    yield from bps.abs_set(self.dismount_cmd, 1, wait=True)
+    dismount_status = self.dismount_cmd.set(1)
+    dismount_status.wait(ISARA_TIMEOUT)
 
-
-    if self.spindle_occupied_sts.get(use_monitor=False):
+    if not dismount_status.success:
       raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount")
