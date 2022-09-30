@@ -58,9 +58,10 @@ class IsaraRobotDevice(Device):
   # 8 = "LaserTool"
   tool_selected = Cpt(EpicsSignal,'Tl-Sel')
 
-  # limits 0-29 
-  plate_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
-  plate_n_selected = Cpt(EpicsSignal, 'Plt:N-SP', put_complete=True)
+  # limits 0-29
+  # argument is interchangeable for puck/plate selection field
+  puck_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
+  puck_n_selected = Cpt(EpicsSignal, 'Plt:N-SP', put_complete=True)
 
   # limits 0-16
   sample_selected = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
@@ -173,7 +174,7 @@ class IsaraRobotDevice(Device):
   samp_b_read = Cpt(EpicsSignalRO, 'Samp:B-I')
   samp_dif_read = Cpt(EpicsSignalRO, 'Samp:Dif-I')
 
-  def set_and_check(signal, value)
+  def set_and_check(signal, value):
     signal_status = signal.put(value)
     signal_status.wait(ISARA_TIMEOUT)
     return signal_status.success
@@ -230,9 +231,9 @@ class IsaraRobotDevice(Device):
   def movement_ready(self):
     if not self.power_sts.get():
       return [False, "Power is off"]
-    if not self.moving_sts.get():
+    if self.moving_sts.get():
       return [False, "Moving"]
-    if not self.paused_sts.get():
+    if self.paused_sts.get():
       return [False, "Paused"]
     return [True, "mount ready"]
 
@@ -262,7 +263,7 @@ class IsaraRobotDevice(Device):
   #    raise RuntimeError(f"Bad tool argument")
   #  return self.put_traj.set(1).wait(ISARA_TIMEOUT)
 
-  # Recover Trajectory
+  # unmount Trajectory
   #  required arguments
   #  --current_tool_number
   #def unmountRobotSample(self):
@@ -294,8 +295,8 @@ class IsaraRobotDevice(Device):
     sample_str = f"{sample}{puck}"
 
     #TODO: switch status.wait to callbacks
-    puck_sel_status = self.puck_num_sel.set(puck)
-    sample_sel_status = self.sample_num_sel.set(sample)
+    puck_sel_status = self.puck_selected.set(puck)
+    sample_sel_status = self.sample_selected.set(sample)
     puck_sel_status.wait(ISARA_TIMEOUT)
     sample_sel_status.wait(ISARA_TIMEOUT)
 
@@ -314,15 +315,16 @@ class IsaraRobotDevice(Device):
     # check trajectory arguments
     if self.current_tool.get() != self.tool_selected.get():
       raise RuntimeError(f"Bad tool argument")
-    sample_str = self.set_sample(self, puck: str, sample: str)
+    sample_str = self.set_sample(puck, sample)
     # check that position == soak
-    mount_status = self.mount_cmd.set(1)
+    mount_status = self.put_traj.set(1)
     mount_status.wait(ISARA_TIMEOUT)
 
     if not mount_status.success:
       raise RuntimeError(f"Can't mount {sample_str}: failed to mount")
+    return mount_status
 
-  def dismount(self, puck: str, sample: str):
+  def dismount(self):
     # check robot is ready
     ready, desc = self.movement_ready()
     if not ready:
@@ -334,8 +336,9 @@ class IsaraRobotDevice(Device):
     if self.current_tool.get() != self.tool_selected.get():
       raise RuntimeError(f"Bad tool argument")
 
-    dismount_status = self.dismount_cmd.set(1)
+    dismount_status = self.get_traj.set(1)
     dismount_status.wait(ISARA_TIMEOUT)
 
     if not dismount_status.success:
       raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount")
+    return dismount_status
