@@ -1,6 +1,6 @@
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
-
+print("LOADING ISARA_OPHYD")
 #TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
 
@@ -60,11 +60,11 @@ class IsaraRobotDevice(Device):
 
   # limits 0-29
   # argument is interchangeable for puck/plate selection field
-  puck_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
+  puck_num_sel = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
   puck_n_selected = Cpt(EpicsSignal, 'Plt:N-SP', put_complete=True)
 
   # limits 0-16
-  sample_selected = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
+  sample_num_sel = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
   samp_n_selected = Cpt(EpicsSignal, 'Samp:N-SP', put_complete=True)
 
   # 0 = "Skip"
@@ -175,13 +175,13 @@ class IsaraRobotDevice(Device):
   samp_dif_read = Cpt(EpicsSignalRO, 'Samp:Dif-I')
 
   def set_and_check(signal, value):
-    signal_status = signal.put(value)
+    signal_status = signal.set(value)
     signal_status.wait(ISARA_TIMEOUT)
     return signal_status.success
 
   # deprecated possibly by doublegripper functions
   def selectSample(self, sample_no):
-    return set_and_check(self.sample_selected, sample_no)
+    return set_and_check(self.sample_num_sel, sample_no)
 
   def selectPlate(self, plate_no):
     return set_and_check(self.plate_selected, plate_no)
@@ -295,8 +295,8 @@ class IsaraRobotDevice(Device):
     sample_str = f"{sample}{puck}"
 
     #TODO: switch status.wait to callbacks
-    puck_sel_status = self.puck_selected.set(puck)
-    sample_sel_status = self.sample_selected.set(sample)
+    puck_sel_status = self.puck_num_sel.set(puck)
+    sample_sel_status = self.sample_num_sel.set(sample)
     puck_sel_status.wait(ISARA_TIMEOUT)
     sample_sel_status.wait(ISARA_TIMEOUT)
 
@@ -317,6 +317,9 @@ class IsaraRobotDevice(Device):
       raise RuntimeError(f"Bad tool argument")
     sample_str = self.set_sample(puck, sample)
     # check that position == soak
+    if position_sts.get() != "SOAK":
+      if not self.set_and_check(self.soak_traj, 1):
+        raise RuntimeError("Failed to reach soak position before mounting")
     mount_status = self.put_traj.set(1)
     mount_status.wait(ISARA_TIMEOUT)
 
