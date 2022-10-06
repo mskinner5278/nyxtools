@@ -235,7 +235,7 @@ class IsaraRobotDevice(Device):
       return [False, "Moving"]
     if self.paused_sts.get():
       return [False, "Paused"]
-    return [True, "mount ready"]
+    return [True, "movement ready"]
 
   # Recover Trajectory
   #  required arguments
@@ -295,6 +295,7 @@ class IsaraRobotDevice(Device):
     sample_str = f"{sample}{puck}"
 
     #TODO: switch status.wait to callbacks
+
     puck_sel_status = self.puck_selected.set(puck)
     sample_sel_status = self.sample_selected.set(sample)
     puck_sel_status.wait(ISARA_TIMEOUT)
@@ -307,16 +308,27 @@ class IsaraRobotDevice(Device):
 
     return sample_str
 
+  def premount(self):
+    if not self.power_sts.get():
+      if not set_and_check(power_on, 1):
+        raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()")
+    if self.current_tool.get() != self.tool_selected.get():
+      if not set_and_check(self.tool_selected, self.current_tool.get()):
+        raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
+    if self.position_sts.get() != 'SOAK':
+      ready, desc = self.movement_ready()
+      if ready:
+        if not set_and_check(self.soak_traj, 1):
+          raise RuntimeError(f"mount error: failed to reach soak position before mount")
+
   def mount(self, puck: str, sample: str):
-    # check robot is ready
     ready, desc = self.movement_ready()
     if not ready:
-      raise RuntimeError(f"Can't mount: {desc}")
-    # check trajectory arguments
-    if self.current_tool.get() != self.tool_selected.get():
-      raise RuntimeError(f"Bad tool argument")
+      raise RuntimeError(f"Movement not ready: {desc}")
+
+    self.premount()
+
     sample_str = self.set_sample(puck, sample)
-    # check that position == soak
     mount_status = self.put_traj.set(1)
     mount_status.wait(ISARA_TIMEOUT)
 
