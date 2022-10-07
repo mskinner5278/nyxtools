@@ -1,3 +1,4 @@
+import bluesky.plan_stubs as bps
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
 
@@ -250,27 +251,6 @@ class IsaraRobotDevice(Device):
   def finish():
     pass
 
-  # Mount (Put Trajectory)
-  #  required arguments:
-  #  --current_tool_number
-  #  --sample_num
-  #  --puck_num
-  #  optional arguments:
-  #  --next_sample_num
-  #  --next_puck_num
-  #def mountRobotSample(self):
-  #  if self.current_tool.get() != self.tool_selected.get():
-  #    raise RuntimeError(f"Bad tool argument")
-  #  return self.put_traj.set(1).wait(ISARA_TIMEOUT)
-
-  # unmount Trajectory
-  #  required arguments
-  #  --current_tool_number
-  #def unmountRobotSample(self):
-  #  if self.current_tool.get() != self.tool_selected.get():
-  #    raise RuntimeError(f"Bad tool argument")
-  #  return self.back_traj.set(1).wait(ISARA_TIMEOUT)
-
   # Home Trajectory
   #  required arguments
   #  --current_tool_number
@@ -296,10 +276,8 @@ class IsaraRobotDevice(Device):
 
     #TODO: switch status.wait to callbacks
 
-    puck_sel_status = self.puck_selected.set(puck)
-    sample_sel_status = self.sample_selected.set(sample)
-    puck_sel_status.wait(ISARA_TIMEOUT)
-    sample_sel_status.wait(ISARA_TIMEOUT)
+    sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck, wait=True)
+    puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample, wait=True)
 
     if not sample_sel_status.success:
       raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
@@ -308,49 +286,61 @@ class IsaraRobotDevice(Device):
 
     return sample_str
 
-  def premount(self):
+  def mount(self, puck: str, sample: str):
+    # Cancel mount if robot is mid-movement
+    if self.moving_sts.get():
+      raise RuntimeError(f"Can't mount {sample_str}: robot is moving")
+
+    # Robot powers on before movement
     if not self.power_sts.get():
-      if not set_and_check(power_on, 1):
-        raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()")
+      power_set_status = yield from bps.abs_set(power_on, 1, wait=True):
+      if not power_set_status.success:
+        raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+
+    # This is to check that the trajectory's tool argument matches equipped tool
     if self.current_tool.get() != self.tool_selected.get():
-      if not set_and_check(self.tool_selected, self.current_tool.get()):
+      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True):
+      if not tool_set_status.success:
         raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
+
+    # Robot must be in soak position before mounting
     if self.position_sts.get() != 'SOAK':
-      ready, desc = self.movement_ready()
-      if ready:
-        if not set_and_check(self.soak_traj, 1):
+       soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True):
+       if not soak_traj_status.success:
           raise RuntimeError(f"mount error: failed to reach soak position before mount")
 
-  def mount(self, puck: str, sample: str):
-    ready, desc = self.movement_ready()
-    if not ready:
-      raise RuntimeError(f"Movement not ready: {desc}")
+    sample_str = yield from self.set_sample(puck, sample)
 
-    self.premount()
-
-    sample_str = self.set_sample(puck, sample)
-    mount_status = self.put_traj.set(1)
-    mount_status.wait(ISARA_TIMEOUT)
+    mount_status = yield from bps.abs_set(self.put_traj, 1, wait=True)
 
     if not mount_status.success:
-      raise RuntimeError(f"Can't mount {sample_str}: failed to mount")
+      raise RuntimeError(f"Can't mount {sample_str}: {self.last_message.get()}")
     return mount_status
 
-  def dismount(self):
-    # check robot is ready
-    ready, desc = self.movement_ready()
-    if not ready:
-      raise RuntimeError(f"Can't dismount {sample_str}: busy")
+  def dismount(self, puck: str, sample: str):
+    sample_str = f"{sample}{puck}"
+    # Cancel mount if robot is mid-movement
+    if self.moving_sts.get():
+      raise RuntimeError(f"Can't dismount: robot is moving")
+
     # check spindle is actually occupied
     if not self.spindle_occupied_sts.get():
-      raise RuntimeError(f"Can't dismount {sample_str}: spindle not occupied")
-    # check trajectory arguments
-    if self.current_tool.get() != self.tool_selected.get():
-      raise RuntimeError(f"Bad tool argument")
+      raise RuntimeError(f"Can't dismount: spindle not occupied")
 
-    dismount_status = self.get_traj.set(1)
-    dismount_status.wait(ISARA_TIMEOUT)
+    # Robot powers on before movement
+    if not self.power_sts.get():
+      power_set_status = yield from bps.abs_set(power_on, 1, wait=True):
+      if not power_set_status.success:
+        raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+
+    # This is to check that the trajectory's tool argument matches equipped tool
+    if self.current_tool.get() != self.tool_selected.get():
+      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True):
+      if not tool_set_status.success:
+        raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
+
+    dismount_status = yield from bps.abs_set(self.get_traj, 1, wait=True)
 
     if not dismount_status.success:
-      raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount")
+      raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}")
     return dismount_status
