@@ -61,11 +61,11 @@ class IsaraRobotDevice(Device):
 
   # limits 0-29
   # argument is interchangeable for puck/plate selection field
-  puck_selected = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
+  puck_num_sel = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
   puck_n_selected = Cpt(EpicsSignal, 'Plt:N-SP', put_complete=True)
 
   # limits 0-16
-  sample_selected = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
+  sample_num_sel = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
   samp_n_selected = Cpt(EpicsSignal, 'Samp:N-SP', put_complete=True)
 
   # 0 = "Skip"
@@ -181,6 +181,7 @@ class IsaraRobotDevice(Device):
     return signal_status.success
 
   # deprecated possibly by doublegripper functions
+  # the following are only for testing purposes
   def selectSample(self, sample_no):
     return set_and_check(self.sample_selected, sample_no)
 
@@ -293,23 +294,23 @@ class IsaraRobotDevice(Device):
 
     # Robot powers on before movement
     if not self.power_sts.get():
-      power_set_status = yield from bps.abs_set(power_on, 1, wait=True):
+      power_set_status = yield from bps.abs_set(power_on, 1, wait=True)
       if not power_set_status.success:
         raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
     # This is to check that the trajectory's tool argument matches equipped tool
     if self.current_tool.get() != self.tool_selected.get():
-      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True):
+      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True)
       if not tool_set_status.success:
         raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
 
     # Robot must be in soak position before mounting
     if self.position_sts.get() != 'SOAK':
-       soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True):
+       soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
        if not soak_traj_status.success:
           raise RuntimeError(f"mount error: failed to reach soak position before mount")
 
-    sample_str = yield from self.set_sample(puck, sample)
+    sample_str = yield from self.set_sample(puck, sample, wait=True)
 
     mount_status = yield from bps.abs_set(self.put_traj, 1, wait=True)
 
@@ -329,13 +330,13 @@ class IsaraRobotDevice(Device):
 
     # Robot powers on before movement
     if not self.power_sts.get():
-      power_set_status = yield from bps.abs_set(power_on, 1, wait=True):
+      power_set_status = yield from bps.abs_set(power_on, 1, wait=True)
       if not power_set_status.success:
         raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
     # This is to check that the trajectory's tool argument matches equipped tool
     if self.current_tool.get() != self.tool_selected.get():
-      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True):
+      tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True)
       if not tool_set_status.success:
         raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
 
