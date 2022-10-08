@@ -1,6 +1,7 @@
 import bluesky.plan_stubs as bps
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
+from ophyd import PVPositioner as Pos
 
 #TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
@@ -10,42 +11,42 @@ class IsaraRobotDevice(Device):
 
     ## Generic command channels
     # power
-    power_on = Cpt(EpicsSignal, 'Pwr:On-Cmd', put_complete=True)
-    power_off = Cpt(EpicsSignal, 'Pwr:Off-Cmd', put_complete=True)
+    power_on = Cpt(EpicsSignal, 'Pwr:On-Cmd')
+    power_off = Cpt(EpicsSignal, 'Pwr:Off-Cmd')
 
     # arm movement speed
-    speed_up = Cpt(EpicsSignal, 'Spd:Up-Cmd', put_complete=True)
-    speed_down = Cpt(EpicsSignal, 'Spd:Dn-Cmd', put_complete=True)
+    speed_up = Cpt(EpicsSignal, 'Spd:Up-Cmd')
+    speed_down = Cpt(EpicsSignal, 'Spd:Dn-Cmd')
     # 0 - 100
-    speed_setpoint = Cpt(EpicsSignal, 'Speed-SP', put_complete=True)
+    speed_setpoint = Cpt(EpicsSignal, 'Speed-SP')
 
     # heater
-    heater_on = Cpt(EpicsSignal, 'Htr:On-Cmd', put_complete=True)
-    heater_off = Cpt(EpicsSignal, 'Htr:Off-Cmd', put_complete=True)
+    heater_on = Cpt(EpicsSignal, 'Htr:On-Cmd')
+    heater_off = Cpt(EpicsSignal, 'Htr:Off-Cmd')
 
     # dewar lid
-    dewar_lid_open = Cpt(EpicsSignal, 'Lid:Opn-Cmd', put_complete=True)
-    dewar_lid_close = Cpt(EpicsSignal, 'Lid:Cls-Cmd', put_complete=True)
+    dewar_lid_open = Cpt(EpicsSignal, 'Lid:Opn-Cmd')
+    dewar_lid_close = Cpt(EpicsSignal, 'Lid:Cls-Cmd')
 
     # gripper a
-    gripper_a_open = Cpt(EpicsSignal, 'OpnA-Cmd', put_complete=True)
-    gripper_a_close = Cpt(EpicsSignal, 'ClsA-Cmd', put_complete=True)
+    gripper_a_open = Cpt(EpicsSignal, 'OpnA-Cmd')
+    gripper_a_close = Cpt(EpicsSignal, 'ClsA-Cmd')
   
     # gripper b
-    gripper_b_open = Cpt(EpicsSignal, 'OpnB-Cmd', put_complete=True)
-    gripper_b_close = Cpt(EpicsSignal, 'ClsB-Cmd', put_complete=True)
+    gripper_b_open = Cpt(EpicsSignal, 'OpnB-Cmd')
+    gripper_b_close = Cpt(EpicsSignal, 'ClsB-Cmd')
 
     ## Trajectories
     # write 1 to start move
-    home_traj = Cpt(EpicsSignal,'Move:Home-Cmd', put_complete=True)
-    recover_traj = Cpt(EpicsSignal,'Move:Rcvr-Cmd', put_complete=True)
-    get_traj = Cpt(EpicsSignal,'Move:Get-Cmd', put_complete=True)
-    put_traj = Cpt(EpicsSignal,'Move:Put-Cmd', put_complete=True)
-    getput_traj = Cpt(EpicsSignal,'Move:GetPut-Cmd', put_complete=True)
-    back_traj = Cpt(EpicsSignal,'Move:Bck-Cmd', put_complete=True)
-    dry_traj = Cpt(EpicsSignal, 'Move:Dry-Cmd', put_complete=True)
-    soak_traj = Cpt(EpicsSignal, 'Move:Sk-Cmd', put_complete=True)
-    pick_traj = Cpt(EpicsSignal, 'Move:Pck-Cmd', put_complete=True)
+    home_traj = Cpt(EpicsSignal,'Move:Home-Cmd')
+    recover_traj = Cpt(EpicsSignal,'Move:Rcvr-Cmd')
+    get_traj = Cpt(EpicsSignal,'Move:Get-Cmd')
+    put_traj = Cpt(EpicsSignal,'Move:Put-Cmd')
+    getput_traj = Cpt(EpicsSignal,'Move:GetPut-Cmd')
+    back_traj = Cpt(EpicsSignal,'Move:Bck-Cmd')
+    dry_traj = Cpt(EpicsSignal, 'Move:Dry-Cmd')
+    soak_traj = Cpt(EpicsSignal, 'Move:Sk-Cmd')
+    pick_traj = Cpt(EpicsSignal, 'Move:Pck-Cmd')
 
     ## Trajectory Arguments
     # 0 = "ToolChanger"
@@ -294,13 +295,13 @@ class IsaraRobotDevice(Device):
 
         # Robot powers on before movement
         if not self.power_sts.get():
-            power_set_status = yield from bps.abs_set(power_on, 1, wait=True)
-        if not power_set_status.success:
+            power_set_status = yield from bps.abs_set(power_on, 1, wait=True, settle_time=0.05)
+        if not self.power_sts.get():
             raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
-            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True)
+            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05)
             if not tool_set_status.success:
                 raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
 
@@ -330,13 +331,13 @@ class IsaraRobotDevice(Device):
 
         # Robot powers on before movement
         if not self.power_sts.get():
-            power_set_status = yield from bps.abs_set(power_on, 1, wait=True)
-            if not power_set_status.success:
+            power_set_status = yield from bps.abs_set(power_on, 1, wait=True, settle_time=0.05)
+            if not self.power_sts.get():
                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
-            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True)
+            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05)
             if not tool_set_status.success:
                 raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
 
