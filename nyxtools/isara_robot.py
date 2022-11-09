@@ -1,6 +1,6 @@
 import bluesky.plan_stubs as bps
-from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO
 
 # TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
@@ -193,9 +193,7 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(
-                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
-            )
+            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.recover_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -208,9 +206,7 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def homeRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(
-                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
-            )
+            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.home_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -220,9 +216,7 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def soakGripper(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(
-                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
-            )
+            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.soak_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -252,9 +246,7 @@ class IsaraRobotDevice(Device):
         if not self.power_sts.get():
             yield from bps.abs_set(self.power_on, 1, wait=True, settle_time=1)
         if not self.power_sts.get():
-            raise RuntimeError(
-                f"Failed to power robot on before move: {self.power_sts.get()}"
-            )
+            raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
@@ -271,9 +263,7 @@ class IsaraRobotDevice(Device):
             print("moving to soak before mounting, 45 seconds...")
             soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
             if not soak_traj_status.success:
-                raise RuntimeError(
-                    "mount error: failed to reach soak position before mount"
-                )
+                raise RuntimeError("mount error: failed to reach soak position before mount")
             else:
                 print("soaking...")
                 yield from bps.sleep(45.0)
@@ -302,9 +292,7 @@ class IsaraRobotDevice(Device):
         if not self.power_sts.get():
             yield from bps.abs_set(self.power_on, 1, wait=True, settle_time=1)
             if not self.power_sts.get():
-                raise RuntimeError(
-                    f"Failed to power robot on before move: {self.power_sts.get()}"
-                )
+                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
@@ -319,9 +307,7 @@ class IsaraRobotDevice(Device):
         dismount_status = yield from bps.abs_set(self.get_traj, 1, wait=True)
 
         if not dismount_status.success:
-            raise RuntimeError(
-                f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}"
-            )
+            raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}")
         else:
             print("dismount successful")
         return dismount_status
