@@ -3,50 +3,51 @@ from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
 from ophyd import PVPositioner as Pos
 
-#TIMEOUT in seconds, should be declared elsewhere
+# TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
+
 
 class IsaraRobotDevice(Device):
     ### Commands
 
     ## Generic command channels
     # power
-    power_on = Cpt(EpicsSignal, 'Pwr:On-Cmd')
-    power_off = Cpt(EpicsSignal, 'Pwr:Off-Cmd')
+    power_on = Cpt(EpicsSignal, "Pwr:On-Cmd")
+    power_off = Cpt(EpicsSignal, "Pwr:Off-Cmd")
 
     # arm movement speed
-    speed_up = Cpt(EpicsSignal, 'Spd:Up-Cmd')
-    speed_down = Cpt(EpicsSignal, 'Spd:Dn-Cmd')
+    speed_up = Cpt(EpicsSignal, "Spd:Up-Cmd")
+    speed_down = Cpt(EpicsSignal, "Spd:Dn-Cmd")
     # 0 - 100
-    speed_setpoint = Cpt(EpicsSignal, 'Speed-SP')
+    speed_setpoint = Cpt(EpicsSignal, "Speed-SP")
 
     # heater
-    heater_on = Cpt(EpicsSignal, 'Htr:On-Cmd')
-    heater_off = Cpt(EpicsSignal, 'Htr:Off-Cmd')
+    heater_on = Cpt(EpicsSignal, "Htr:On-Cmd")
+    heater_off = Cpt(EpicsSignal, "Htr:Off-Cmd")
 
     # dewar lid
-    dewar_lid_open = Cpt(EpicsSignal, 'Lid:Opn-Cmd')
-    dewar_lid_close = Cpt(EpicsSignal, 'Lid:Cls-Cmd')
+    dewar_lid_open = Cpt(EpicsSignal, "Lid:Opn-Cmd")
+    dewar_lid_close = Cpt(EpicsSignal, "Lid:Cls-Cmd")
 
     # gripper a
-    gripper_a_open = Cpt(EpicsSignal, 'OpnA-Cmd')
-    gripper_a_close = Cpt(EpicsSignal, 'ClsA-Cmd')
-  
+    gripper_a_open = Cpt(EpicsSignal, "OpnA-Cmd")
+    gripper_a_close = Cpt(EpicsSignal, "ClsA-Cmd")
+
     # gripper b
-    gripper_b_open = Cpt(EpicsSignal, 'OpnB-Cmd')
-    gripper_b_close = Cpt(EpicsSignal, 'ClsB-Cmd')
+    gripper_b_open = Cpt(EpicsSignal, "OpnB-Cmd")
+    gripper_b_close = Cpt(EpicsSignal, "ClsB-Cmd")
 
     ## Trajectories
     # write 1 to start move
-    home_traj = Cpt(EpicsSignal,'Move:Home-Cmd', put_complete=True)
-    recover_traj = Cpt(EpicsSignal,'Move:Rcvr-Cmd', put_complete=True)
-    get_traj = Cpt(EpicsSignal,'Move:Get-Cmd', put_complete=True)
-    put_traj = Cpt(EpicsSignal,'Move:Put-Cmd', put_complete=True)
-    getput_traj = Cpt(EpicsSignal,'Move:GetPut-Cmd', put_complete=True)
-    back_traj = Cpt(EpicsSignal,'Move:Bck-Cmd', put_complete=True)
-    dry_traj = Cpt(EpicsSignal, 'Move:Dry-Cmd', put_complete=True)
-    soak_traj = Cpt(EpicsSignal, 'Move:Sk-Cmd', put_complete=True)
-    pick_traj = Cpt(EpicsSignal, 'Move:Pck-Cmd', put_complete=True)
+    home_traj = Cpt(EpicsSignal, "Move:Home-Cmd", put_complete=True)
+    recover_traj = Cpt(EpicsSignal, "Move:Rcvr-Cmd", put_complete=True)
+    get_traj = Cpt(EpicsSignal, "Move:Get-Cmd", put_complete=True)
+    put_traj = Cpt(EpicsSignal, "Move:Put-Cmd", put_complete=True)
+    getput_traj = Cpt(EpicsSignal, "Move:GetPut-Cmd", put_complete=True)
+    back_traj = Cpt(EpicsSignal, "Move:Bck-Cmd", put_complete=True)
+    dry_traj = Cpt(EpicsSignal, "Move:Dry-Cmd", put_complete=True)
+    soak_traj = Cpt(EpicsSignal, "Move:Sk-Cmd", put_complete=True)
+    pick_traj = Cpt(EpicsSignal, "Move:Pck-Cmd", put_complete=True)
 
     ## Trajectory Arguments
     # 0 = "ToolChanger"
@@ -58,80 +59,80 @@ class IsaraRobotDevice(Device):
     # 6 = "PlateGripper"
     # 7 = "Spare"
     # 8 = "LaserTool"
-    tool_selected = Cpt(EpicsSignal,'Tl-Sel')
+    tool_selected = Cpt(EpicsSignal, "Tl-Sel")
 
     # limits 0-29
     # argument is interchangeable for puck/plate selection field
-    puck_num_sel = Cpt(EpicsSignal, 'Plt-SP', put_complete=True)
-    puck_n_selected = Cpt(EpicsSignal, 'Plt:N-SP', put_complete=True)
+    puck_num_sel = Cpt(EpicsSignal, "Plt-SP", put_complete=True)
+    puck_n_selected = Cpt(EpicsSignal, "Plt:N-SP", put_complete=True)
 
     # limits 0-16
-    sample_num_sel = Cpt(EpicsSignal, 'Samp-SP', put_complete=True)
-    samp_n_selected = Cpt(EpicsSignal, 'Samp:N-SP', put_complete=True)
+    sample_num_sel = Cpt(EpicsSignal, "Samp-SP", put_complete=True)
+    samp_n_selected = Cpt(EpicsSignal, "Samp:N-SP", put_complete=True)
 
     # 0 = "Skip"
     # 1 = "Scan"
-    dm_selected = Cpt(EpicsSignal, 'DM-Sel', put_complete=True)
+    dm_selected = Cpt(EpicsSignal, "DM-Sel", put_complete=True)
 
     ### Statuses
 
     # interface from denso, try to maintain types
-    #int
-    #status
+    # int
+    # status
 
-    #bool
-    #busy_sts
+    # bool
+    # busy_sts
 
-    #bool
-    #mount_ready_sts
+    # bool
+    # mount_ready_sts
 
-    #is mounting bool
-    #mounting_sts
+    # is mounting bool
+    # mounting_sts
 
-    #is dismounting bool
-    #dismounting_sts
+    # is dismounting bool
+    # dismounting_sts
 
     # is drying bool
     # 0 = "Idle"
     # 1 = "Drying"
-    drying_sts = Cpt(EpicsSignalRO, 'GripDry-Sts')
-    # new 
+    drying_sts = Cpt(EpicsSignalRO, "GripDry-Sts")
+    # new
     # 0 = "Hold off"
     # 1 = "Permit"
-    drying_permitted_sts = Cpt(EpicsSignalRO,'DryPmt-I')
+    drying_permitted_sts = Cpt(EpicsSignalRO, "DryPmt-I")
 
     # spindle occupied bool
-    spindle_occupied_sts = Cpt(EpicsSignalRO, 'Samp:Dif-Sts')
+    spindle_occupied_sts = Cpt(EpicsSignalRO, "Samp:Dif-Sts")
 
     # New statuses for ISARA
 
     # Last Message
-    last_message = Cpt(EpicsSignalRO, 'LastMsg-I')
- 
+    last_message = Cpt(EpicsSignalRO, "LastMsg-I")
+
     # Fault Status
     # 0 = "Ok"
     # 1 = "Fault"
-    fault_sts = Cpt(EpicsSignalRO, 'Flt-Sts')
+    fault_sts = Cpt(EpicsSignalRO, "Flt-Sts")
 
     # Alarm Status
     # TODO: What does this return?
-    alarm_sts = Cpt(EpicsSignalRO, 'Alarm-I')
+    alarm_sts = Cpt(EpicsSignalRO, "Alarm-I")
 
     # Current Position
-    position_sts = Cpt(EpicsSignalRO, 'Pos:Name-I')
+    position_sts = Cpt(EpicsSignalRO, "Pos:Name-I")
 
     # Moving Status
     # 0 = "Stopped"
     # 1 = "Moving"
-    moving_sts = Cpt(EpicsSignalRO, 'Seq:Run-Sts')
+    moving_sts = Cpt(EpicsSignalRO, "Seq:Run-Sts")
 
     # Paused Status
     # 0 = "Normal"
     # 1 = "Paused"
-    paused_sts = Cpt(EpicsSignalRO, 'Seq:Paus-Sts')
+    paused_sts = Cpt(EpicsSignalRO, "Seq:Paus-Sts")
 
     # Speed Status
-    speed_sts = Cpt(EpicsSignalRO, 'Speed-I')
+    speed_sts = Cpt(EpicsSignalRO, "Speed-I")
 
     # Current Tool
     # 0 = "ToolChanger"
@@ -143,38 +144,38 @@ class IsaraRobotDevice(Device):
     # 6 = "PlateGripper"
     # 7 = "Spare"
     # 8 = "LaserTool"
-    current_tool = Cpt(EpicsSignal, 'Tl-I')
+    current_tool = Cpt(EpicsSignal, "Tl-I")
 
     # Power status
     # 0 = "Off"
     # 1 = "On"
-    power_sts = Cpt(EpicsSignalRO, 'Pwr-Sts')
+    power_sts = Cpt(EpicsSignalRO, "Pwr-Sts")
 
     # Occupied statuses
     # 0 = "Empty"
     # 1 = "Present"
-    samp_a_occ_sts = Cpt(EpicsSignalRO, 'Samp:A-Sts')
-    samp_b_occ_sts  = Cpt(EpicsSignalRO, 'Samp:B-Sts')
-    samp_dif_occ_sts = Cpt(EpicsSignalRO, 'Samp:Dif-Sts')
+    samp_a_occ_sts = Cpt(EpicsSignalRO, "Samp:A-Sts")
+    samp_b_occ_sts = Cpt(EpicsSignalRO, "Samp:B-Sts")
+    samp_dif_occ_sts = Cpt(EpicsSignalRO, "Samp:Dif-Sts")
 
     # Gripper Statuses
     # 0 = "Open"
     # 1 = "Closed"
-    grip_a_sts = Cpt(EpicsSignalRO, 'Grp:A-Sts')
-    grip_b_sts = Cpt(EpicsSignalRO, 'Grp:B-Sts')
-  
+    grip_a_sts = Cpt(EpicsSignalRO, "Grp:A-Sts")
+    grip_b_sts = Cpt(EpicsSignalRO, "Grp:B-Sts")
+
     # Samples occupying gripper/spindle
     # returns 0-29
     # returns -1 if empty
-    puck_a_read = Cpt(EpicsSignalRO, 'Pck:A-I')
-    puck_b_read = Cpt(EpicsSignalRO, 'Pck:B-I')
-    puck_dif_read = Cpt(EpicsSignalRO, 'Pck:Dif-I')
-  
+    puck_a_read = Cpt(EpicsSignalRO, "Pck:A-I")
+    puck_b_read = Cpt(EpicsSignalRO, "Pck:B-I")
+    puck_dif_read = Cpt(EpicsSignalRO, "Pck:Dif-I")
+
     # returns 0-16
     # returns -1 if empty
-    samp_a_read = Cpt(EpicsSignalRO, 'Samp:A-I')
-    samp_b_read = Cpt(EpicsSignalRO, 'Samp:B-I')
-    samp_dif_read = Cpt(EpicsSignalRO, 'Samp:Dif-I')
+    samp_a_read = Cpt(EpicsSignalRO, "Samp:A-I")
+    samp_b_read = Cpt(EpicsSignalRO, "Samp:B-I")
+    samp_dif_read = Cpt(EpicsSignalRO, "Samp:Dif-I")
 
     def set_and_check(signal, value):
         signal_status = signal.put(value)
@@ -190,7 +191,7 @@ class IsaraRobotDevice(Device):
         return set_and_check(self.plate_selected, plate_no)
 
     def openGripper(self):
-        pass   
+        pass
 
     def closeGripper(self):
         pass
@@ -276,7 +277,7 @@ class IsaraRobotDevice(Device):
     def set_sample(self, puck: str, sample: str):
         sample_str = f"{sample}{puck}"
 
-        #TODO: switch status.wait to callbacks
+        # TODO: switch status.wait to callbacks
 
         sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck, wait=True)
         puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample, wait=True)
@@ -301,12 +302,16 @@ class IsaraRobotDevice(Device):
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
-            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05)
+            tool_set_status = yield from bps.abs_set(
+                self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
+            )
             if not tool_set_status.success:
-                raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
+                raise RuntimeError(
+                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}"
+                )
 
         # Robot must be in soak position before mounting
-        if self.position_sts.get() != 'SOAK':
+        if self.position_sts.get() != "SOAK":
             logger.info("moving to soak before mounting, 45 seconds...")
             soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
             if not soak_traj_status.success:
@@ -339,18 +344,22 @@ class IsaraRobotDevice(Device):
         if not self.power_sts.get():
             power_set_status = yield from bps.abs_set(power_on, 1, wait=True, settle_time=1)
             if not self.power_sts.get():
-               raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
-            tool_set_status = yield from bps.abs_set(self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05)
+            tool_set_status = yield from bps.abs_set(
+                self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
+            )
             if not tool_set_status.success:
-                raise RuntimeError(f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}")
+                raise RuntimeError(
+                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}"
+                )
         logger.info("dismounting")
         dismount_status = yield from bps.abs_set(self.get_traj, 1, wait=True)
 
         if not dismount_status.success:
-           raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}")
-       else:
-           logger.info("dismount successful")
+            raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}")
+        else:
+            logger.info("dismount successful")
         return dismount_status
