@@ -1,16 +1,15 @@
 import bluesky.plan_stubs as bps
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
-from ophyd import PVPositioner as Pos
 
 # TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
 
 
 class IsaraRobotDevice(Device):
-    ### Commands
+    # Commands
 
-    ## Generic command channels
+    # Generic command channels
     # power
     power_on = Cpt(EpicsSignal, "Pwr:On-Cmd")
     power_off = Cpt(EpicsSignal, "Pwr:Off-Cmd")
@@ -37,7 +36,7 @@ class IsaraRobotDevice(Device):
     gripper_b_open = Cpt(EpicsSignal, "OpnB-Cmd")
     gripper_b_close = Cpt(EpicsSignal, "ClsB-Cmd")
 
-    ## Trajectories
+    # Trajectories
     # write 1 to start move
     home_traj = Cpt(EpicsSignal, "Move:Home-Cmd", put_complete=True)
     recover_traj = Cpt(EpicsSignal, "Move:Rcvr-Cmd", put_complete=True)
@@ -49,7 +48,7 @@ class IsaraRobotDevice(Device):
     soak_traj = Cpt(EpicsSignal, "Move:Sk-Cmd", put_complete=True)
     pick_traj = Cpt(EpicsSignal, "Move:Pck-Cmd", put_complete=True)
 
-    ## Trajectory Arguments
+    # Trajectory Arguments
     # 0 = "ToolChanger"
     # 1 = "Cryotong"
     # 2 = "SingleGripper"
@@ -74,7 +73,7 @@ class IsaraRobotDevice(Device):
     # 1 = "Scan"
     dm_selected = Cpt(EpicsSignal, "DM-Sel", put_complete=True)
 
-    ### Statuses
+    # Statuses
 
     # interface from denso, try to maintain types
     # int
@@ -177,58 +176,6 @@ class IsaraRobotDevice(Device):
     samp_b_read = Cpt(EpicsSignalRO, "Samp:B-I")
     samp_dif_read = Cpt(EpicsSignalRO, "Samp:Dif-I")
 
-    def set_and_check(signal, value):
-        signal_status = signal.put(value)
-        signal_status.wait(ISARA_TIMEOUT)
-        return signal_status.success
-
-    # deprecated possibly by doublegripper functions
-    # the following are only for testing purposes
-    def selectSample(self, sample_no):
-        return set_and_check(self.sample_selected, sample_no)
-
-    def selectPlate(self, plate_no):
-        return set_and_check(self.plate_selected, plate_no)
-
-    def openGripper(self):
-        pass
-
-    def closeGripper(self):
-        pass
-
-    def openGripperA(self):
-        return set_and_check(self.gripper_a_open, 1)
-
-    def openGripperB(self):
-        return set_and_check(self.gripper_a_open, 1)
-
-    def closeGripperA(self):
-        return set_and_check(self.gripper_a_close, 1)
-
-    def closeGripperB(self):
-        return set_and_check(self.gripper_b_close, 1)
-
-    def warmupGripper(self):
-        pass
-
-    def DewarHeaterOff(self):
-        return set_and_check(self.heater_off, 1)
-
-    def DewarHeaterOn(self):
-        return set_and_check(self.heater_on, 1)
-
-    def parkGripper(self):
-        pass
-
-    def testRobot(self):
-        pass
-
-    def openPort(self, PortNo):
-        pass
-
-    def closePorts(self):
-        pass
-
     def dryGripper(self):
         self.dry_traj.set(1)
 
@@ -246,7 +193,9 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument")
+            raise RuntimeError(
+                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
+            )
         traj_status = self.recover_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -259,7 +208,9 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def homeRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument")
+            raise RuntimeError(
+                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
+            )
         traj_status = self.home_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -269,7 +220,9 @@ class IsaraRobotDevice(Device):
     #  --current_tool_number
     def soakGripper(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument")
+            raise RuntimeError(
+                f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}"
+            )
         traj_status = self.soak_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -290,15 +243,18 @@ class IsaraRobotDevice(Device):
         return sample_str
 
     def mount(self, puck: str, sample: str):
+        sample_str = f"{sample}{puck}"
         # Cancel mount if robot is mid-movement
         if self.moving_sts.get():
             raise RuntimeError(f"Can't mount {sample_str}: robot is moving")
 
         # Robot powers on before movement
         if not self.power_sts.get():
-            power_set_status = yield from bps.abs_set(power_on, 1, wait=True, settle_time=1)
+            yield from bps.abs_set(self.power_on, 1, wait=True, settle_time=1)
         if not self.power_sts.get():
-            raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+            raise RuntimeError(
+                f"Failed to power robot on before move: {self.power_sts.get()}"
+            )
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
@@ -312,39 +268,43 @@ class IsaraRobotDevice(Device):
 
         # Robot must be in soak position before mounting
         if self.position_sts.get() != "SOAK":
-            logger.info("moving to soak before mounting, 45 seconds...")
+            print("moving to soak before mounting, 45 seconds...")
             soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
             if not soak_traj_status.success:
-                raise RuntimeError(f"mount error: failed to reach soak position before mount")
+                raise RuntimeError(
+                    "mount error: failed to reach soak position before mount"
+                )
             else:
-                logger.info("soaking...")
+                print("soaking...")
                 yield from bps.sleep(45.0)
-                logger.info("soak complete")
+                print("soak complete")
 
         sample_str = yield from self.set_sample(puck, sample, wait=True)
-        logger.info(f"mounting sample str:  {sample_str}")
+        print(f"mounting sample str:  {sample_str}")
         mount_status = yield from bps.abs_set(self.getput_traj, 1, wait=True)
         if not mount_status.success:
             raise RuntimeError(f"Can't mount {sample_str}: {self.last_message.get()}")
         else:
-            logger.info("mount successful")
+            print("mount successful")
         return mount_status
 
     def dismount(self, puck: str, sample: str):
         sample_str = f"{sample}{puck}"
         # Cancel mount if robot is mid-movement
         if self.moving_sts.get():
-            raise RuntimeError(f"Can't dismount: robot is moving")
+            raise RuntimeError("Can't dismount: robot is moving")
 
         # check spindle is actually occupied
         if not self.spindle_occupied_sts.get():
-            raise RuntimeError(f"Can't dismount: spindle not occupied")
+            raise RuntimeError("Can't dismount: spindle not occupied")
 
         # Robot powers on before movement
         if not self.power_sts.get():
-            power_set_status = yield from bps.abs_set(power_on, 1, wait=True, settle_time=1)
+            yield from bps.abs_set(self.power_on, 1, wait=True, settle_time=1)
             if not self.power_sts.get():
-                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+                raise RuntimeError(
+                    f"Failed to power robot on before move: {self.power_sts.get()}"
+                )
 
         # This is to check that the trajectory's tool argument matches equipped tool
         if self.current_tool.get() != self.tool_selected.get():
@@ -355,11 +315,13 @@ class IsaraRobotDevice(Device):
                 raise RuntimeError(
                     f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}"
                 )
-        logger.info("dismounting")
+        print("dismounting")
         dismount_status = yield from bps.abs_set(self.get_traj, 1, wait=True)
 
         if not dismount_status.success:
-            raise RuntimeError(f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}")
+            raise RuntimeError(
+                f"Can't dismount {sample_str}: failed to dismount {self.last_message.get()}"
+            )
         else:
-            logger.info("dismount successful")
+            print("dismount successful")
         return dismount_status
