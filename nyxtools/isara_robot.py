@@ -239,7 +239,7 @@ class IsaraRobotDevice(Device):
 
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
+            raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.recover_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
@@ -249,14 +249,14 @@ class IsaraRobotDevice(Device):
 
     def homeRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
+            raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.home_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
 
     def soakGripper(self):
         if self.current_tool.get() != self.tool_selected.get():
-            raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
+            raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
         traj_status = self.soak_traj.set(1)
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
