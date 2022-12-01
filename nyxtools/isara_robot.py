@@ -1,14 +1,14 @@
+from enum import Enum
+
 import bluesky.plan_stubs as bps
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
-from enum import Enum
 
 # TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
 
 
 class IsaraRobotDevice(Device):
-
     class Tool(Enum):
         TOOLCHANGER = 0
         CRYOTONG = 1
@@ -289,8 +289,8 @@ class IsaraRobotDevice(Device):
             raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IssaraRobotDevice.Tool.DOUBLEGRIPPER:
-            raise RuntimeError(f"Wrong tool equipped! Aborting mount")
+        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+            raise RuntimeError("Wrong tool equipped! Aborting mount")
         # Trajectory tool_selected argument must be DoubleGripper
         if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
             tool_set_status = yield from bps.abs_set(
@@ -298,7 +298,8 @@ class IsaraRobotDevice(Device):
             )
             if not tool_set_status.success:
                 raise RuntimeError(
-                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"
+                    f"""Failed to fix bad tool argument:  {self.tool_selected.get()}
+                      != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"""
                 )
 
         # Robot must be in soak position before mounting
@@ -338,8 +339,8 @@ class IsaraRobotDevice(Device):
                 raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IssaraRobotDevice.Tool.DOUBLEGRIPPER:
-            raise RuntimeError(f"Wrong tool equipped! Aborting dismount")
+        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+            raise RuntimeError("Wrong tool equipped! Aborting dismount")
         # Trajectory tool_selected argument must be DoubleGripper
         if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
             tool_set_status = yield from bps.abs_set(
@@ -347,7 +348,8 @@ class IsaraRobotDevice(Device):
             )
             if not tool_set_status.success:
                 raise RuntimeError(
-                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"
+                    f"""Failed to fix bad tool argument:  {self.tool_selected.get()}
+                     != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"""
                 )
 
         print("dismounting")
