@@ -1,14 +1,26 @@
 import bluesky.plan_stubs as bps
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
+from enum import Enum
 
 # TIMEOUT in seconds, should be declared elsewhere
 ISARA_TIMEOUT = 100
 
 
 class IsaraRobotDevice(Device):
-    # Commands
 
+    class Tool(Enum):
+        TOOLCHANGER = 0
+        CRYOTONG = 1
+        SINGLEGRIPPER = 2
+        DOUBLEGRIPPER = 3
+        MINISPINEGRIPPER = 4
+        ROTATINGGRIPPER = 5
+        PLATEGRIPPER = 6
+        SPARE = 7
+        LASERTOOL = 8
+
+    # Commands
     # Generic command channels
     # power
     power_on = Cpt(EpicsSignal, "Pwr:On-Cmd")
@@ -38,36 +50,80 @@ class IsaraRobotDevice(Device):
 
     # Trajectories
     # write 1 to start move
+    # trajectory arguments are defined by the robot software
+    # we provide all arguments by setting a corresponding argument PV before issuing the move
+
+    # Home Trajectory
+    #  required arguments
+    #     tool_selected
     home_traj = Cpt(EpicsSignal, "Move:Home-Cmd", put_complete=True)
+
+    # Recover Trajectory
+    #  required arguments
+    #     tool_selected
     recover_traj = Cpt(EpicsSignal, "Move:Rcvr-Cmd", put_complete=True)
+
+    # Get Trajectory
+    #   required arguments
+    #     tool_selected
     get_traj = Cpt(EpicsSignal, "Move:Get-Cmd", put_complete=True)
+
+    # Put Trajectory
+    #   required arguments:
+    #     tool_selected
+    #     puck_num_sel
+    #     sample_num_sel
+    #   optional arguments:
+    #     puck_next_num_sel
+    #     sample_next_num_sel
     put_traj = Cpt(EpicsSignal, "Move:Put-Cmd", put_complete=True)
+
+    # GetPut Trajectory
+    #   required arguments:
+    #     tool_selected
+    #     puck_num_sel
+    #     sample_num_sel
+    #   optional arguments:
+    #     puck_next_num_sel
+    #     sample_next_num_sel
     getput_traj = Cpt(EpicsSignal, "Move:GetPut-Cmd", put_complete=True)
+
+    # Back Trajectory
+    #   required arguments
+    #     tool_selected
     back_traj = Cpt(EpicsSignal, "Move:Bck-Cmd", put_complete=True)
+
+    # Dry Trajectory
+    #   required arguments
+    #     tool_selected
     dry_traj = Cpt(EpicsSignal, "Move:Dry-Cmd", put_complete=True)
+
+    # Soak Trajectory
+    #   required arguments
+    #     tool_selected
     soak_traj = Cpt(EpicsSignal, "Move:Sk-Cmd", put_complete=True)
+
+    # Pick Trajectory
+    #   required arguments
+    #     tool_selected
+    #     puck_num_sel
+    #     sample_num_sel
     pick_traj = Cpt(EpicsSignal, "Move:Pck-Cmd", put_complete=True)
 
-    # Trajectory Arguments
-    # 0 = "ToolChanger"
-    # 1 = "Cryotong"
-    # 2 = "SingleGripper"
-    # 3 = "DoubleGripper"
-    # 4 = "MiniSpineGripper"
-    # 5 = "RotatingGripper"
-    # 6 = "PlateGripper"
-    # 7 = "Spare"
-    # 8 = "LaserTool"
+    # Uses the Tool Enum to define the intended tool for a trajectory
+    # NYX currently only has DoubleGripper
     tool_selected = Cpt(EpicsSignal, "Tl-Sel")
 
-    # limits 0-29
+    # limits 1-29
     # argument is interchangeable for puck/plate selection field
+    # "next" is used for the queueing function of the doublegripper
     puck_num_sel = Cpt(EpicsSignal, "Plt-SP", put_complete=True)
-    puck_n_selected = Cpt(EpicsSignal, "Plt:N-SP", put_complete=True)
+    puck_next_num_sel = Cpt(EpicsSignal, "Plt:N-SP", put_complete=True)
 
-    # limits 0-16
+    # limits 1-16
+    # "next" is used for the queueing function of the doublegripper
     sample_num_sel = Cpt(EpicsSignal, "Samp-SP", put_complete=True)
-    samp_n_selected = Cpt(EpicsSignal, "Samp:N-SP", put_complete=True)
+    samp_next_num_sel = Cpt(EpicsSignal, "Samp:N-SP", put_complete=True)
 
     # 0 = "Skip"
     # 1 = "Scan"
@@ -118,6 +174,8 @@ class IsaraRobotDevice(Device):
     alarm_sts = Cpt(EpicsSignalRO, "Alarm-I")
 
     # Current Position
+    # SOAK
+    # HOME
     position_sts = Cpt(EpicsSignalRO, "Pos:Name-I")
 
     # Moving Status
@@ -133,16 +191,6 @@ class IsaraRobotDevice(Device):
     # Speed Status
     speed_sts = Cpt(EpicsSignalRO, "Speed-I")
 
-    # Current Tool
-    # 0 = "ToolChanger"
-    # 1 = "Cryotong"
-    # 2 = "SingleGripper"
-    # 3 = "DoubleGripper"
-    # 4 = "MiniSpineGripper"
-    # 5 = "RotatingGripper"
-    # 6 = "PlateGripper"
-    # 7 = "Spare"
-    # 8 = "LaserTool"
     current_tool = Cpt(EpicsSignal, "Tl-I")
 
     # Power status
@@ -164,13 +212,13 @@ class IsaraRobotDevice(Device):
     grip_b_sts = Cpt(EpicsSignalRO, "Grp:B-Sts")
 
     # Samples occupying gripper/spindle
-    # returns 0-29
+    # returns 1-29
     # returns -1 if empty
     puck_a_read = Cpt(EpicsSignalRO, "Pck:A-I")
     puck_b_read = Cpt(EpicsSignalRO, "Pck:B-I")
     puck_dif_read = Cpt(EpicsSignalRO, "Pck:Dif-I")
 
-    # returns 0-16
+    # returns 1-16
     # returns -1 if empty
     samp_a_read = Cpt(EpicsSignalRO, "Samp:A-I")
     samp_b_read = Cpt(EpicsSignalRO, "Samp:B-I")
@@ -188,9 +236,6 @@ class IsaraRobotDevice(Device):
             return [False, "Paused"]
         return [True, "movement ready"]
 
-    # Recover Trajectory
-    #  required arguments
-    #  --current_tool_number
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
             raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
@@ -201,9 +246,6 @@ class IsaraRobotDevice(Device):
     def finish():
         pass
 
-    # Home Trajectory
-    #  required arguments
-    #  --current_tool_number
     def homeRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
             raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
@@ -211,9 +253,6 @@ class IsaraRobotDevice(Device):
         traj_status.wait(ISARA_TIMEOUT)
         return traj_status.success
 
-    # Soak Trajectory
-    #  required arguments
-    #  --current_tool_number
     def soakGripper(self):
         if self.current_tool.get() != self.tool_selected.get():
             raise RuntimeError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
@@ -248,14 +287,17 @@ class IsaraRobotDevice(Device):
         if not self.power_sts.get():
             raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
-        # This is to check that the trajectory's tool argument matches equipped tool
-        if self.current_tool.get() != self.tool_selected.get():
+        # Ensure that the robot is using DoubleGripper
+        if self.current_tool.get() != IssaraRobotDevice.Tool.DOUBLEGRIPPER:
+            raise RuntimeError(f"Wrong tool equipped! Aborting mount")
+        # Trajectory tool_selected argument must be DoubleGripper
+        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )
             if not tool_set_status.success:
                 raise RuntimeError(
-                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}"
+                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"
                 )
 
         # Robot must be in soak position before mounting
@@ -294,15 +336,19 @@ class IsaraRobotDevice(Device):
             if not self.power_sts.get():
                 raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
-        # This is to check that the trajectory's tool argument matches equipped tool
-        if self.current_tool.get() != self.tool_selected.get():
+        # Ensure that the robot is using DoubleGripper
+        if self.current_tool.get() != IssaraRobotDevice.Tool.DOUBLEGRIPPER:
+            raise RuntimeError(f"Wrong tool equipped! Aborting dismount")
+        # Trajectory tool_selected argument must be DoubleGripper
+        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )
             if not tool_set_status.success:
                 raise RuntimeError(
-                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {self.current_tool.get()}"
+                    f"Failed to fix bad tool argument:  {self.tool_selected.get()} != {IsaraRobotDevice.Tool.DOUBLEGRIPPER}"
                 )
+
         print("dismounting")
         dismount_status = yield from bps.abs_set(self.get_traj, 1, wait=True)
 
