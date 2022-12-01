@@ -151,6 +151,7 @@ class IsaraRobotDevice(Device):
     # 0 = "Idle"
     # 1 = "Drying"
     drying_sts = Cpt(EpicsSignalRO, "GripDry-Sts")
+
     # new
     # 0 = "Hold off"
     # 1 = "Permit"
