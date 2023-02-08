@@ -305,7 +305,7 @@ class IsaraRobotDevice(Device):
         # Robot must be in soak position before mounting
         if self.position_sts.get() != "SOAK":
             print("moving to soak before mounting, 45 seconds...")
-            soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
+            soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True, settle_time=5)
             if not soak_traj_status.success:
                 raise RuntimeError("mount error: failed to reach soak position before mount")
             else:
