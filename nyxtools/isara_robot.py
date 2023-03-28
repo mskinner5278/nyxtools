@@ -237,6 +237,45 @@ class IsaraRobotDevice(Device):
             return [False, "Paused"]
         return [True, "movement ready"]
 
+    def parkRobot(self):
+        # Robot powers on before movement
+        if not self.power_sts.get():
+            self.power_on.set(1, settle_time=1)
+            if not self.power_sts.get():
+                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+
+        if self.current_tool.get() != self.tool_selected.get():
+            raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
+
+        #Check spindle occupied, then dismount sample
+        if self.spindle_occupied_sts.get():
+            get_traj_status = self.get_traj.set(1)
+            get_traj_status.wait(ISARA_TIMEOUT)
+            if not get_traj_status.success:
+                raise RuntimeError("get trajectory failed during park robot")
+
+        # Check if gripper is occupied, then return samples to dewar
+        if self.samp_a_read == -1 and self.samp_b_read == -1:
+            back_traj_status = self.back_traj.set(1)
+            back_traj_status.wait(ISARA_TIMEOUT)
+            if not back_traj_status.success:
+                raise RuntimeError("back trajectory failed during park robot")
+
+        # Check if gripper drying is allowed, then dry
+        if self.drying_permitted_sts.get():
+            dry_traj_status = self.dry_traj.set(1)
+            dry_traj_status.wait(ISARA_TIMEOUT)
+            if not dry_traj_status.success:
+                raise RuntimeError("drying trajectory failed during park robot")
+        # Home
+        home_traj_status = self.home_traj.set(1)
+        home_traj_status.wait(ISARA_TIMEOUT)
+        if not home_traj_status.success:
+            raise RuntimeError("home trajectory failed during park robot")
+        
+        # Robot power off
+        self.power_off.set(1)
+
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
             raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
