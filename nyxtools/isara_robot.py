@@ -9,7 +9,7 @@ ISARA_TIMEOUT = 100
 
 
 class IsaraRobotDevice(Device):
-    class Tool(Enum):
+    class Tool(int, Enum): #int enum is necessary in python 3.11+?
         TOOLCHANGER = 0
         CRYOTONG = 1
         SINGLEGRIPPER = 2
@@ -255,7 +255,7 @@ class IsaraRobotDevice(Device):
                 raise RuntimeError("get trajectory failed during park robot")
 
         # Check if gripper is occupied, then return samples to dewar
-        if self.samp_a_read == -1 and self.samp_b_read == -1:
+        if self.samp_a_read.get() != -1 or self.samp_b_read.get != -1:
             back_traj_status = self.back_traj.set(1)
             back_traj_status.wait(ISARA_TIMEOUT)
             if not back_traj_status.success:
@@ -267,14 +267,18 @@ class IsaraRobotDevice(Device):
             dry_traj_status.wait(ISARA_TIMEOUT)
             if not dry_traj_status.success:
                 raise RuntimeError("drying trajectory failed during park robot")
-        # Home
-        home_traj_status = self.home_traj.set(1)
-        home_traj_status.wait(ISARA_TIMEOUT)
-        if not home_traj_status.success:
-            raise RuntimeError("home trajectory failed during park robot")
-        
+        # Close Dewar Lid
+        dewar_lid_close_sts = self.dewar_lid_close.set(1)
+        dewar_lid_close_sts.wait(ISARA_TIMEOUT)
+        if not dewar_lid_close_sts.success:
+            raise RuntimeError("dewar lid failed to close during park robot")
+
         # Robot power off
-        self.power_off.set(1)
+        self.power_off.set(1, settle_time=1)
+        if self.power_sts.get():
+            raise RuntimeError("Robot failed to power off during park robot")
+        else:
+            return True
 
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
@@ -305,8 +309,8 @@ class IsaraRobotDevice(Device):
 
         # TODO: switch status.wait to callbacks
 
-        sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck, wait=True)
-        puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample, wait=True)
+        sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck)
+        puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample)
 
         if not sample_sel_status.success:
             raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
