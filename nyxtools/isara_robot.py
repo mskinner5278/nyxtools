@@ -240,7 +240,7 @@ class IsaraRobotDevice(Device):
     def parkRobot(self):
         # Robot powers on before movement
         if not self.power_sts.get():
-            self.power_on.set(1, settle_time=1)
+            self.power_on.put(1, settle_time=1)
             if not self.power_sts.get():
                 raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
