@@ -267,6 +267,9 @@ class IsaraRobotDevice(Device):
             dry_traj_status.wait(ISARA_TIMEOUT)
             if not dry_traj_status.success:
                 raise RuntimeError("drying trajectory failed during park robot")
+        else:
+            print("dry not permitted, skipping")
+
         # Close Dewar Lid
         dewar_lid_close_sts = self.dewar_lid_close.set(1)
         dewar_lid_close_sts.wait(ISARA_TIMEOUT)
@@ -274,7 +277,7 @@ class IsaraRobotDevice(Device):
             raise RuntimeError("dewar lid failed to close during park robot")
 
         # Robot power off
-        self.power_off.set(1, settle_time=1)
+        self.power_off.put(1, settle_time=1)
         if self.power_sts.get():
             raise RuntimeError("Robot failed to power off during park robot")
         else:
