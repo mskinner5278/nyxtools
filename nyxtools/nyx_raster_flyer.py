@@ -10,17 +10,24 @@ class NYXRasterFlyer(NYXEiger2Flyer):
 
     def update_parameters(self, *args, **kwargs):
         logger.debug("starting updating parameters")
-        configure vector
-        configure zebra on first row
+        self.configure_vector(**kwargs)
+        row_index = kwargs.get("row_index", 0)
+        if row_index == 0:
+            logger.debug("row 0: fully configuring zebra")
+            self.configure_zebra(**kwargs)
+        else:
+            numImages = kwargs["num_images"]
+            logger.debug(f"row {row_index}: only setting pulse max")
+            self.zebra.pc.pulse.max.put(numImages)
+            logger.debug("finished updating parameters") 
         
-
     def configure_detector():
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
         self.detector.file.external_name.put(file_prefix)
         self.detector.file.write_path_template = data_directory_name
 
-    #def configure_zebra():
+    #def configure_zebra(): unchanged?
          #calls into zebra_daq_prep() and then setup_zebra_vector_scan()
 
     #def zebra_daq_prep(): unchanged
