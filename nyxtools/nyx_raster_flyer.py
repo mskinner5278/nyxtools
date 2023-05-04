@@ -107,7 +107,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         yield {"data": {}, "timestamps": {}, "time": 0, "seq_num": 0}
 
     def unstage(self):
-        pass
+        self.detector.cam.acquire.put(0)
 
     def collect_asset_docs(self):
         for _ in ():
