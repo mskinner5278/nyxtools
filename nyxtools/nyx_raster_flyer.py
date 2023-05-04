@@ -1,3 +1,21 @@
+import getpass
+import grp
+import logging
+import os
+import time as ttime
+
+from ophyd.sim import NullStatus
+from ophyd.status import SubscriptionStatus
+
+from .flyer_eiger2 import NYXEiger2Flyer
+
+logger = logging.getLogger(__name__)
+
+INTERNAL_SERIES = 0
+INTERNAL_ENABLE = 1
+EXTERNAL_SERIES = 2
+EXTERNAL_ENABLE = 3
+
 class NYXRasterFlyer(NYXEiger2Flyer):
     def __init__(self, vector, zebra, detector=None) -> None:
         super().__init__(vector, zebra, detector)
