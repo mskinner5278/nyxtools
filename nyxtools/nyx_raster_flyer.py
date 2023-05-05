@@ -39,7 +39,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
             self.zebra.pc.pulse.max.put(numImages)
             logger.debug("finished updating parameters") 
         
-    def configure_detector():
+    def configure_detector(self, *args, **kwargs):
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
         self.detector.file.external_name.put(file_prefix)
