@@ -23,11 +23,11 @@ class NYXRasterFlyer(NYXEiger2Flyer):
 
     def kickoff(self):
         # lsdc will handle detector staging/unstaging
-        self.vector.go.put(1)
+        self.vector.move()
         return NullStatus()
 
     def update_parameters(self, *args, **kwargs):
-        logger.debug("starting updating parameters")
+        logger.debug(f"starting updating parameters with {kwargs}")
         self.configure_vector(**kwargs)
         row_index = kwargs.get("row_index", 0)
         if row_index == 0:
@@ -77,7 +77,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
             f"after: pulse width: {self.zebra.pc.pulse.width.get()} pulse delay: {self.zebra.pc.pulse.delay.get()}"
         )
         self.zebra.pc.pulse.max.put(num_images, wait=True)
-        self.vector.hold.put(0)  # necessary to prevent problems upon
+        #self.vector.hold.put(0)  # necessary to prevent problems upon
         # exposure time change  elf.detector.cam.acquire.put(1)
         
 
