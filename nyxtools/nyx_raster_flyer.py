@@ -117,7 +117,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.detector.cam.omega_start.put(start)
         self.detector.cam.wavelength.put(wavelength)
         self.detector.cam.det_distance.put(det_distance_m)
-        self.detector.cam.trigger_mode.put(eiger.EXTERNAL_ENABLE) #TODO: is this the right mode?
+        self.detector.cam.trigger_mode.put(EXTERNAL_ENABLE) #TODO: is this the right mode?
 
         self.detector.file.file_write_images_per_file.put(num_images_per_file)
 
