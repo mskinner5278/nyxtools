@@ -30,6 +30,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         logger.debug(f"starting updating parameters with {kwargs}")
         self.configure_vector(**kwargs)
         row_index = kwargs.get("row_index", 0)
+        numImages = kwargs["num_images"]
         if row_index == 0:
             logger.debug("row 0: fully configuring zebra")
             self.zebra.pc.pulse.max.put(numImages)
@@ -37,10 +38,10 @@ class NYXRasterFlyer(NYXEiger2Flyer):
             self.zebra.pc.arm_signal.put(1)
             ttime.sleep(1) # waiting for zebra to finish arming, should replace with status.wait()
         else:
-            numImages = kwargs["num_images"]
             logger.debug(f"row {row_index}: only setting pulse max")
             self.zebra.pc.arm_signal.put(1) # zebra is being re-armed each row
             self.zebra.pc.pulse.max.put(numImages)
+            ttime.sleep(1) # waiting for zebra to finish arming, should replace with status.wait()
         logger.debug("finished updating parameters") 
         
     def configure_detector(self, *args, **kwargs):
