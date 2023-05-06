@@ -22,9 +22,9 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.name = "NYXRasterFlyer"
 
     def kickoff(self):
-        # lsdc will handle detector staging/unstaging
+        # still need to stage the detector in lsdc
         self.vector.move()
-        return NullStatus()
+        return NullStatus() # why not return the status object?
 
     def update_parameters(self, *args, **kwargs):
         logger.debug(f"starting updating parameters with {kwargs}")
@@ -32,12 +32,16 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         row_index = kwargs.get("row_index", 0)
         if row_index == 0:
             logger.debug("row 0: fully configuring zebra")
+            self.zebra.pc.pulse.max.put(numImages)
             self.configure_zebra(**kwargs)
+            self.zebra.pc.arm_signal.put(1)
+            ttime.sleep(1) # waiting for zebra to finish arming, should replace with status.wait()
         else:
             numImages = kwargs["num_images"]
             logger.debug(f"row {row_index}: only setting pulse max")
+            self.zebra.pc.arm_signal.put(1) # zebra is being re-armed each row
             self.zebra.pc.pulse.max.put(numImages)
-            logger.debug("finished updating parameters") 
+        logger.debug("finished updating parameters") 
         
     def configure_detector(self, *args, **kwargs):
         file_prefix = kwargs["file_prefix"]
@@ -61,6 +65,9 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         num_images,
         is_still=False,
     ):
+        self.zebra.pc.encoder.put(0, wait=True) # 0 = omega for nyx
+        self.zebra.pc.direction.put(0, wait=True) # 0 = positive trigger
+        self.zebra.pc.gate.start.put(angle_start, wait=True)
         if is_still is False:
             logger.debug(f"before: gate width: {gate_width} gate step: {scan_width}")
             self.zebra.pc.gate.width.put(gate_width, wait=True)
@@ -77,7 +84,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
             f"after: pulse width: {self.zebra.pc.pulse.width.get()} pulse delay: {self.zebra.pc.pulse.delay.get()}"
         )
         self.zebra.pc.pulse.max.put(num_images, wait=True)
-        #self.vector.hold.put(0)  # necessary to prevent problems upon
+        self.vector.hold.put(0)  # necessary to prevent problems upon
         # exposure time change  elf.detector.cam.acquire.put(1)
         
 
@@ -117,7 +124,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.detector.cam.omega_start.put(start)
         self.detector.cam.wavelength.put(wavelength)
         self.detector.cam.det_distance.put(det_distance_m)
-        self.detector.cam.trigger_mode.put(EXTERNAL_ENABLE) #TODO: is this the right mode?
+        self.detector.cam.trigger_mode.put(EXTERNAL_ENABLE) # must be external_enable to get the correct number of triggers and stop acquire
 
         self.detector.file.file_write_images_per_file.put(num_images_per_file)
 
@@ -143,6 +150,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         yield {"data": {}, "timestamps": {}, "time": 0, "seq_num": 0}
 
     def unstage(self):
+        logger.debug("detector unstaging")
         self.detector.cam.acquire.put(0)
 
     def collect_asset_docs(self):
