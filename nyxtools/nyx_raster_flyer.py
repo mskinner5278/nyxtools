@@ -31,29 +31,32 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.configure_vector(**kwargs)
         row_index = kwargs.get("row_index", 0)
         numImages = kwargs["num_images"]
+
+        def armed_callback(value, old_value, **kwargs):
+            if old_value == 0 and value == 1:
+                return True
+	    return False
+
+        status = SubscriptionStatus(self.zebra.pc.arm.arm_status, armed_callback, run=False)
+
         if row_index == 0:
-            logger.debug("row 0: fully configuring zebra")
+            logger.debug("row 0: fully configuring zebra, and arming")
             self.zebra.pc.pulse.max.put(numImages)
             self.configure_zebra(**kwargs)
             self.zebra.pc.arm_signal.put(1)
-            ttime.sleep(1) # waiting for zebra to finish arming, should replace with status.wait()
+            status.wait()
         else:
-            logger.debug(f"row {row_index}: only setting pulse max")
-            self.zebra.pc.arm_signal.put(1) # zebra is being re-armed each row
+            logger.debug(f"row {row_index}: only setting pulse max, and arming")
             self.zebra.pc.pulse.max.put(numImages)
-            ttime.sleep(1) # waiting for zebra to finish arming, should replace with status.wait()
+            self.zebra.pc.arm_signal.put(1)
+            status.wait()
         logger.debug("finished updating parameters") 
         
     def configure_detector(self, *args, **kwargs):
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
-        self.detector.file.external_name.put(file_prefix)
+        self.detector.file.external_name.put(file_prefix, wait=True)
         self.detector.file.write_path_template = data_directory_name
-
-    #def configure_zebra(): unchanged?
-         #calls into zebra_daq_prep() and then setup_zebra_vector_scan()
-
-    #def zebra_daq_prep(): unchanged
 
     def setup_zebra_vector_scan(
         self,
@@ -113,10 +116,10 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.detector.cam.acquire_time.put(exposure_per_image)
         self.detector.cam.acquire_period.put(exposure_per_image)
         self.detector.cam.num_triggers.put(total_num_images)
-        self.detector.cam.file_path.put(data_directory_name)
-        self.detector.cam.fw_name_pattern.put(f"{file_prefix_minus_directory}_$id")
+        self.detector.cam.file_path.put(data_directory_name, wait=True)
+        self.detector.cam.fw_name_pattern.put(f"{file_prefix_minus_directory}_$id", wait=True)
 
-        self.detector.cam.sequence_id.put(file_number_start)
+        self.detector.cam.sequence_id.put(file_number_start, wait=True)
 
         # originally from detector_set_fileheader
         self.detector.cam.beam_center_x.put(x_beam)
@@ -127,7 +130,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.detector.cam.det_distance.put(det_distance_m)
         self.detector.cam.trigger_mode.put(EXTERNAL_ENABLE) # must be external_enable to get the correct number of triggers and stop acquire
 
-        self.detector.file.file_write_images_per_file.put(num_images_per_file)
+        self.detector.file.file_write_images_per_file.put(num_images_per_file, wait=True)
 
         start_arm = ttime.time()
 
