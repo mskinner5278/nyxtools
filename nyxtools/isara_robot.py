@@ -289,10 +289,10 @@ class IsaraRobotDevice(Device):
             raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.current_tool.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER):
             raise RuntimeError("Wrong tool equipped! Aborting mount")
         # Trajectory tool_selected argument must be DoubleGripper
-        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.tool_selected.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER):
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )
@@ -339,10 +339,10 @@ class IsaraRobotDevice(Device):
                 raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.current_tool.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER):
             raise RuntimeError("Wrong tool equipped! Aborting dismount")
         # Trajectory tool_selected argument must be DoubleGripper
-        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.tool_selected.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER):
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )
