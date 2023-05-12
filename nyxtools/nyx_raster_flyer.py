@@ -30,7 +30,8 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         print(f"starting updating parameters with {kwargs}")
         self.configure_vector(**kwargs)
         row_index = kwargs.get("row_index", 0)
-        numImages = int(kwargs["num_images"])
+        kwargs["num_images"] = float(kwargs["num_images"])
+        numImages = kwargs["num_images"]
 
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
@@ -95,7 +96,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
         width = kwargs["img_width"]
-        total_num_images = int(kwargs["total_num_images"])
+        total_num_images = float(kwargs["total_num_images"])
         exposure_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
