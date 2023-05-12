@@ -35,7 +35,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
                 return True
-	    return False
+            return False
 
         status = SubscriptionStatus(self.zebra.pc.arm.arm_status, armed_callback, run=False)
 
