@@ -312,14 +312,14 @@ class IsaraRobotDevice(Device):
 
         # TODO: switch status.wait to callbacks
 
-        sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck)
-        puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample)
+        sample_sel_status = yield from bps.abs_set(self.sample_num_sel, sample)
         sample_sel_status.wait()
+        puck_sel_status = yield from bps.abs_set(self.puck_num_sel, puck)
         puck_sel_status.wait()
         if not sample_sel_status.success:
-            raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
+            raise RuntimeError(f"Failed to set sample_select: {puck}, {sample}")
         if not puck_sel_status.success:
-            raise RuntimeError(f"Failed to set puck_select: '{sample_str}'")
+            raise RuntimeError(f"Failed to set puck_select: {puck}, {sample}")
 
         return sample_str
 
