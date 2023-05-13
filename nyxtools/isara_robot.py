@@ -313,7 +313,7 @@ class IsaraRobotDevice(Device):
                 yield from bps.sleep(45.0)
                 print("soak complete")
 
-        sample_str = yield from self.set_sample(puck, sample, wait=True)
+        sample_str = yield from self.set_sample(puck, sample)
         print(f"mounting sample str:  {sample_str}")
         mount_status = yield from bps.abs_set(self.getput_traj, 1, wait=True)
         if not mount_status.success:
