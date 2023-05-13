@@ -27,9 +27,10 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         return NullStatus() # why not return the status object?
 
     def update_parameters(self, *args, **kwargs):
-        logger.debug(f"starting updating parameters with {kwargs}")
+        print(f"starting updating parameters with {kwargs}")
         self.configure_vector(**kwargs)
         row_index = kwargs.get("row_index", 0)
+        kwargs["num_images"] = float(kwargs["num_images"])
         numImages = kwargs["num_images"]
 
         def armed_callback(value, old_value, **kwargs):
@@ -40,17 +41,17 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         status = SubscriptionStatus(self.zebra.pc.arm.arm_status, armed_callback, run=False)
 
         if row_index == 0:
-            logger.debug("row 0: fully configuring zebra, and arming")
+            print(f"row 0: fully configuring zebra, and arming with {numImages}")
             self.zebra.pc.pulse.max.put(numImages)
             self.configure_zebra(**kwargs)
             self.zebra.pc.arm_signal.put(1)
             status.wait()
         else:
-            logger.debug(f"row {row_index}: only setting pulse max, and arming")
+            print(f"row {row_index}: only setting pulse max, and arming with {numImages}")
             self.zebra.pc.pulse.max.put(numImages)
             self.zebra.pc.arm_signal.put(1)
             status.wait()
-        logger.debug("finished updating parameters") 
+        print("finished updating parameters") 
         
     def configure_detector(self, *args, **kwargs):
         file_prefix = kwargs["file_prefix"]
@@ -95,7 +96,7 @@ class NYXRasterFlyer(NYXEiger2Flyer):
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
         width = kwargs["img_width"]
-        total_num_images = kwargs["total_num_images"]
+        total_num_images = float(kwargs["total_num_images"])
         exposure_per_image = kwargs["exposure_period_per_image"]
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
