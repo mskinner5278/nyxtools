@@ -308,13 +308,14 @@ class IsaraRobotDevice(Device):
         return traj_status.success
 
     def set_sample(self, puck: str, sample: str):
-        sample_str = f"{sample}{puck}"
+        sample_str = f"sample {sample}:puck {puck}"
 
         # TODO: switch status.wait to callbacks
 
         sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck)
         puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample)
-
+        sample_sel_status.wait()
+        puck_sel_status.wait()
         if not sample_sel_status.success:
             raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
         if not puck_sel_status.success:
@@ -358,6 +359,7 @@ class IsaraRobotDevice(Device):
                 print("soaking...")
                 yield from bps.sleep(45.0)
                 print("soak complete")
+                self.homeRobot()
 
         sample_str = yield from self.set_sample(puck, sample)
         print(f"mounting sample str:  {sample_str}")
