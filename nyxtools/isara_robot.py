@@ -359,7 +359,6 @@ class IsaraRobotDevice(Device):
                 print("soaking...")
                 yield from bps.sleep(45.0)
                 print("soak complete")
-                self.homeRobot()
 
         sample_str = yield from self.set_sample(puck, sample)
         print(f"mounting sample str:  {sample_str}")
