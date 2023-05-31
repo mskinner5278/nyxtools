@@ -22,37 +22,37 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         self.name = "NYXRasterFlyer"
 
     def kickoff(self):
+        print('kickoff')
         # still need to stage the detector in lsdc
-        self.vector.move()
-        return NullStatus() # why not return the status object?
-
-    def update_parameters(self, *args, **kwargs):
-        print(f"starting updating parameters with {kwargs}")
-        self.configure_vector(**kwargs)
-        row_index = kwargs.get("row_index", 0)
-        kwargs["num_images"] = float(kwargs["num_images"])
-        numImages = kwargs["num_images"]
-
+        #ttime.sleep(1)
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
                 return True
             return False
 
-        status = SubscriptionStatus(self.zebra.pc.arm.arm_status, armed_callback, run=False)
+        zebra_status = SubscriptionStatus(self.zebra.pc.arm.output, armed_callback, run=False)
+        self.zebra.pc.arm_signal.put(1)
+        zebra_status.wait()
+        print(f'zebra arm status success: {zebra_status.success}')
+        self.vector.move()
+        return NullStatus() # why not return the status object?
+
+    def update_parameters(self, *args, **kwargs):
+        logger.debug(f"starting updating parameters with {kwargs}")
+        self.configure_vector(**kwargs)
+        row_index = kwargs.get("row_index", 0)
+        kwargs["num_images"] = float(kwargs["num_images"])
+        numImages = kwargs["num_images"]
 
         if row_index == 0:
-            print(f"row 0: fully configuring zebra, and arming with {numImages}")
+            print(f"row 0: fully configuring zebra")
             self.zebra.pc.pulse.max.put(numImages)
             self.configure_zebra(**kwargs)
-            self.zebra.pc.arm_signal.put(1)
-            status.wait()
         else:
-            print(f"row {row_index}: only setting pulse max, and arming with {numImages}")
+            print(f"row {row_index}: only setting pulse max")
             self.zebra.pc.pulse.max.put(numImages)
-            self.zebra.pc.arm_signal.put(1)
-            status.wait()
-        print("finished updating parameters") 
-        
+        print("finished updating parameters")
+
     def configure_detector(self, *args, **kwargs):
         file_prefix = kwargs["file_prefix"]
         data_directory_name = kwargs["data_directory_name"]
@@ -70,28 +70,30 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         num_images,
         is_still=False,
     ):
+        print("setuip zebra vector scan")
         self.zebra.pc.encoder.put(0, wait=True) # 0 = omega for nyx
         self.zebra.pc.direction.put(0, wait=True) # 0 = positive trigger
         self.zebra.pc.gate.start.put(angle_start, wait=True)
         if is_still is False:
-            logger.debug(f"before: gate width: {gate_width} gate step: {scan_width}")
+            print(f"before: gate width: {gate_width} gate step: {scan_width}")
             self.zebra.pc.gate.width.put(gate_width, wait=True)
             self.zebra.pc.gate.step.put(scan_width, wait=True)
         self.zebra.pc.gate.num_gates.put(1, wait=True)
-        self.zebra.pc.pulse.start.put(0, wait=True)
-        logger.debug(f"before: pulse width: {pulse_width}")
+        #self.zebra.pc.pulse.start.put(0, wait=True)
+        self.zebra.pc.pulse.start.put(55, wait=True)
+        print(f"before: pulse width: {pulse_width}")
         self.zebra.pc.pulse.width.put(pulse_width, wait=True)
         self.zebra.pc.pulse.step.put(pulse_step, wait=True)
-        logger.debug(f"before: pulse delay: {exposure_period_per_image / 2 * 1000}")
-        self.zebra.pc.pulse.delay.put(exposure_period_per_image / 2 * 1000, wait=True)
-        logger.debug(
+        print(f"before: pulse delay: {exposure_period_per_image / 2 * 1000}")
+        self.zebra.pc.pulse.delay.put((exposure_period_per_image / 2 * 1000), wait=True)
+        print(
             f"after: gate width: {self.zebra.pc.gate.width.get()} gate step: {self.zebra.pc.gate.step.get()}"
             f"after: pulse width: {self.zebra.pc.pulse.width.get()} pulse delay: {self.zebra.pc.pulse.delay.get()}"
         )
         self.zebra.pc.pulse.max.put(num_images, wait=True)
-        self.vector.hold.put(0)  # necessary to prevent problems upon
+        #self.vector.hold.put(0)  # necessary to prevent problems upon
         # exposure time change  elf.detector.cam.acquire.put(1)
-        
+
 
     def detector_arm(self, **kwargs):
         start = kwargs["angle_start"]
@@ -151,12 +153,12 @@ class NYXRasterFlyer(NYXEiger2Flyer):
         return {"stream_name": {}}
 
     def collect(self):
-        logger.debug("raster_flyer.collect(): going to unstage now") 
+        logger.debug("raster_flyer.collect(): going to unstage now")
         yield {"data": {}, "timestamps": {}, "time": 0, "seq_num": 0}
 
     def unstage(self):
-        logger.debug("detector unstaging")
-        self.detector.cam.acquire.put(0)
+        logger.debug("flyer unstaging")
+        #self.detector.cam.acquire.put(0)
 
     def collect_asset_docs(self):
         for _ in ():
