@@ -30,6 +30,7 @@ class NYXEiger2Flyer(MXFlyer):
                 return True
             else:
                 return False
+
         def callback_zebra(value, old_value, **kwargs):
             if old_value == 1 and value == 0:
                 return True
@@ -37,7 +38,7 @@ class NYXEiger2Flyer(MXFlyer):
 
         zebra_status = SubscriptionStatus(self.zebra.pc.arm.output, callback_zebra, run=False)
 
-        motion_status = SubscriptionStatus(self.vector.active, callback_motion, run=False)
+        # motion_status = SubscriptionStatus(self.vector.active, callback_motion, run=False)
         # as an alternative, consider using self.zebra.download_status as the zebra should
         # finish after the vector has finished its movement.
         return zebra_status
@@ -75,7 +76,7 @@ class NYXEiger2Flyer(MXFlyer):
 
     def zebra_daq_prep(self):
         self.zebra.reset.put(1)
-        ttime.sleep(2.0) #TODO: very long sleep here
+        ttime.sleep(2.0)  # TODO: very long sleep here
         self.zebra.out1.put(31)
         self.zebra.m1_set_pos.put(1)
         self.zebra.m2_set_pos.put(1)
