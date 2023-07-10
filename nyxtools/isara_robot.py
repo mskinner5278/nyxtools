@@ -1,5 +1,6 @@
-from enum import Enum
 import time
+from enum import Enum
+
 import bluesky.plan_stubs as bps
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
