@@ -21,7 +21,6 @@ class PilatusSimulatedFilePlugin(Device, FileStoreBase):
         self._datum_kwargs_map = dict()
 
     def stage(self):  # getting values from resource document
-
         # print(f"{print_now()} staging detector {self.name}")
         # res_uid = self.external_name.get()
         # write_path = datetime.datetime.now().strftime(self.write_path_template)
