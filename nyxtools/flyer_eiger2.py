@@ -24,21 +24,24 @@ class NYXEiger2Flyer(MXFlyer):
         ttime.sleep(1)
 
     def complete(self):
-        st_vector = self.vector.track_move()
-
-        def detector_callback(value, old_value, **kwargs):
-            logger.debug(f"DETECTOR status {old_value} -> {value}")
-            # if old_value == "Acquiring" and value == "Done":
+        def callback_motion(value, old_value, **kwargs):
+            print(f"old: {old_value} -> new: {value}")
             if old_value == 1 and value == 0:
-                logger.debug(f"DETECTOR status successfully changed {old_value} -> {value}")
                 return True
             else:
-                logger.debug(f"DETECTOR status changing {old_value} -> {value}...")
                 return False
 
-        st_detector = SubscriptionStatus(self.detector.cam.acquire, detector_callback, run=True)
+        def callback_zebra(value, old_value, **kwargs):
+            if old_value == 1 and value == 0:
+                return True
+            return False
 
-        return st_vector & st_detector
+        zebra_status = SubscriptionStatus(self.zebra.pc.arm.output, callback_zebra, run=False)
+
+        # motion_status = SubscriptionStatus(self.vector.active, callback_motion, run=False)
+        # as an alternative, consider using self.zebra.download_status as the zebra should
+        # finish after the vector has finished its movement.
+        return zebra_status
 
     def detector_arm(self, **kwargs):
         logger.debug("flyer detector arm")
@@ -73,7 +76,7 @@ class NYXEiger2Flyer(MXFlyer):
 
     def zebra_daq_prep(self):
         self.zebra.reset.put(1)
-        ttime.sleep(2.0)
+        ttime.sleep(2.0)  # TODO: very long sleep here
         self.zebra.out1.put(31)
         self.zebra.m1_set_pos.put(1)
         self.zebra.m2_set_pos.put(1)

@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 
 import bluesky.plan_stubs as bps
@@ -9,7 +10,7 @@ ISARA_TIMEOUT = 100
 
 
 class IsaraRobotDevice(Device):
-    class Tool(Enum):
+    class Tool(int, Enum):  # int enum is necessary in python 3.11+?
         TOOLCHANGER = 0
         CRYOTONG = 1
         SINGLEGRIPPER = 2
@@ -237,6 +238,76 @@ class IsaraRobotDevice(Device):
             return [False, "Paused"]
         return [True, "movement ready"]
 
+    def parkRobot(self):
+        # Robot powers on before movement
+        print("Parking Robot, in ophyd")
+        if not self.power_sts.get():
+            self.power_on.put(1)  # , settle_time=1)
+            time.sleep(3)
+            if not self.power_sts.get():
+                raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
+
+        if self.current_tool.get() != self.tool_selected.get():
+            raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
+
+        # Check spindle occupied, then dismount sample
+        if self.spindle_occupied_sts.get():
+            print("spindle occupied")
+            get_traj_status = self.get_traj.set(1)
+            get_traj_status.wait(ISARA_TIMEOUT)
+            if not get_traj_status.success:
+                raise RuntimeError("get trajectory failed during park robot")
+            else:
+                print(f"get traj status: {get_traj_status}")
+        else:
+            print("spindle not occupied")
+
+        # Check if gripper is occupied, then return samples to dewar
+        if self.samp_a_occ_sts.get() == 1 or self.samp_b_occ_sts.get() == 1:
+            print("gripper occupied")
+            back_traj_status = self.back_traj.set(1)
+            back_traj_status.wait(ISARA_TIMEOUT)
+            if not back_traj_status.success:
+                raise RuntimeError("back trajectory failed during park robot")
+            else:
+                print(f"back traj status: {back_traj_status}")
+
+        # Check if gripper drying is allowed, then dry
+        if self.drying_permitted_sts.get():
+            print("drying permitted")
+            if self.position_sts.get() != "SOAK":
+                soak_traj_status = self.soak_traj.set(1)
+                soak_traj_status.wait()
+            dry_traj_status = self.dry_traj.set(1)
+            time.sleep(120.0)
+            print(f"dry traj status: {dry_traj_status}")
+            # dry_traj_status.wait(ISARA_TIMEOUT*2)
+            # if not dry_traj_status.success:
+            #    raise RuntimeError("drying trajectory failed during park robot")
+        else:
+            print("dry not permitted, skipping")
+            self.homeRobot()
+            print("robot homed")
+            # robot goes home after dry is finished, we go home when skipping
+
+        # Close Dewar Lid
+        print("closing dewar lid")
+        dewar_lid_close_sts = self.dewar_lid_close.set(1)
+        dewar_lid_close_sts.wait(ISARA_TIMEOUT)
+        if not dewar_lid_close_sts.success:
+            raise RuntimeError("dewar lid failed to close during park robot")
+        else:
+            print(f"dewar lid close status: {dewar_lid_close_sts}")
+
+        # Robot power off
+        print("powering off")
+        self.power_off.put(1)  # , settle_time=1)
+        time.sleep(3)
+        if self.power_sts.get():
+            raise RuntimeError("Robot failed to power off during park robot")
+        else:
+            return True
+
     def recoverRobot(self):
         if self.current_tool.get() != self.tool_selected.get():
             raise ValueError(f"Bad tool argument:  {self.current_tool.get()}, {self.tool_selected.get()}")
@@ -262,17 +333,18 @@ class IsaraRobotDevice(Device):
         return traj_status.success
 
     def set_sample(self, puck: str, sample: str):
-        sample_str = f"{sample}{puck}"
+        sample_str = f"sample {sample}:puck {puck}"
 
         # TODO: switch status.wait to callbacks
 
-        sample_sel_status = yield from bps.abs_set(self.puck_num_sel, puck, wait=True)
-        puck_sel_status = yield from bps.abs_set(self.sample_num_sel, sample, wait=True)
-
+        sample_sel_status = yield from bps.abs_set(self.sample_num_sel, sample)
+        sample_sel_status.wait()
+        puck_sel_status = yield from bps.abs_set(self.puck_num_sel, puck)
+        puck_sel_status.wait()
         if not sample_sel_status.success:
-            raise RuntimeError(f"Failed to set sample_select: '{sample_str}'")
+            raise RuntimeError(f"Failed to set sample_select: {puck}, {sample}")
         if not puck_sel_status.success:
-            raise RuntimeError(f"Failed to set puck_select: '{sample_str}'")
+            raise RuntimeError(f"Failed to set puck_select: {puck}, {sample}")
 
         return sample_str
 
@@ -289,10 +361,10 @@ class IsaraRobotDevice(Device):
             raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.current_tool.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER.value):
             raise RuntimeError("Wrong tool equipped! Aborting mount")
         # Trajectory tool_selected argument must be DoubleGripper
-        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.tool_selected.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER.value):
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )
@@ -305,7 +377,7 @@ class IsaraRobotDevice(Device):
         # Robot must be in soak position before mounting
         if self.position_sts.get() != "SOAK":
             print("moving to soak before mounting, 45 seconds...")
-            soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True)
+            soak_traj_status = yield from bps.abs_set(self.soak_traj, 1, wait=True, settle_time=5)
             if not soak_traj_status.success:
                 raise RuntimeError("mount error: failed to reach soak position before mount")
             else:
@@ -313,7 +385,7 @@ class IsaraRobotDevice(Device):
                 yield from bps.sleep(45.0)
                 print("soak complete")
 
-        sample_str = yield from self.set_sample(puck, sample, wait=True)
+        sample_str = yield from self.set_sample(puck, sample)
         print(f"mounting sample str:  {sample_str}")
         mount_status = yield from bps.abs_set(self.getput_traj, 1, wait=True)
         if not mount_status.success:
@@ -339,10 +411,10 @@ class IsaraRobotDevice(Device):
                 raise RuntimeError(f"Failed to power robot on before move: {self.power_sts.get()}")
 
         # Ensure that the robot is using DoubleGripper
-        if self.current_tool.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.current_tool.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER.value):
             raise RuntimeError("Wrong tool equipped! Aborting dismount")
         # Trajectory tool_selected argument must be DoubleGripper
-        if self.tool_selected.get() != IsaraRobotDevice.Tool.DOUBLEGRIPPER:
+        if int(self.tool_selected.get()) != int(IsaraRobotDevice.Tool.DOUBLEGRIPPER.value):
             tool_set_status = yield from bps.abs_set(
                 self.tool_selected, self.current_tool.get(), wait=True, settle_time=0.05
             )

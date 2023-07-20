@@ -187,7 +187,6 @@ class VectorProgram(Device):
         shutter_lag_time_ms: float,
         shutter_time_ms: float,
     ):
-
         # Configure motion
         self.sync.put(1)
 
