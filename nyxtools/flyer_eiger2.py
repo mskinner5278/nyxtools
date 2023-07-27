@@ -20,6 +20,7 @@ class NYXEiger2Flyer(MXFlyer):
 
     def update_parameters(self, **kwargs):
         super().update_parameters(**kwargs)
+        self.detector_arm(**kwargs)
 
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
