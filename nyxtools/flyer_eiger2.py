@@ -20,7 +20,7 @@ class NYXEiger2Flyer(MXFlyer):
 
     def update_parameters(self, **kwargs):
         super().update_parameters(**kwargs)
-        self.detector_arm(**kwargs)
+        det_status = self.detector_arm(**kwargs)
 
         def armed_callback(value, old_value, **kwargs):
             if old_value == 0 and value == 1:
@@ -30,6 +30,7 @@ class NYXEiger2Flyer(MXFlyer):
         zebra_status = SubscriptionStatus(self.zebra.pc.arm.output, armed_callback, run=False)
         self.zebra.pc.arm_signal.put(1)
         zebra_status.wait()
+        return det_status
 
     def complete(self):
         def callback_motion(value, old_value, **kwargs):
