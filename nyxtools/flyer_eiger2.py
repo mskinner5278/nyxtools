@@ -50,12 +50,6 @@ class NYXEiger2Flyer(MXFlyer):
         # finish after the vector has finished its movement.
         return zebra_status
 
-    def detector_arm(self, **kwargs):
-        logger.debug("flyer detector arm")
-        det_status = super().detector_arm(**kwargs)
-        logger.debug("flyer detector arm done")
-        return det_status
-
     def configure_vector(self, **kwargs):
         logger.debug("configuring vector")
         angle_start = kwargs["angle_start"]
